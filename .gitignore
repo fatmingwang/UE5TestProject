@@ -140,6 +140,14 @@ DerivedDataCache/*
 
 # -------------------------
 
+# Ignore external/marketplace plugins
+
+# -------------------------
+
+Plugins/VisualStudioTools/
+
+# -------------------------
+
 # Optional: ignore large temp content
 
 # -------------------------
