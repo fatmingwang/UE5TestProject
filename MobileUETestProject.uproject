@@ -30,6 +30,7 @@
     {
       "Name": "VisualStudioTools",
       "Enabled": true,
+      "Optional": true,
       "SupportedTargetPlatforms": [
         "Win64"
       ]
