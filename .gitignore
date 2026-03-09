@@ -154,3 +154,19 @@ Content/Developers/*
 
 Saved/Autosaves/
 Saved/Backup/
+
+# -------------------------
+
+# Per-user editor settings (merge conflict prone)
+
+# -------------------------
+
+Config/DefaultEditorPerProjectUserSettings.ini
+
+# -------------------------
+
+# Per-level editor preferences (viewport, bookmarks)
+
+# -------------------------
+
+Content/**/*.ini
