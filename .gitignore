@@ -1,0 +1,156 @@
+# ==========================================
+
+# Unreal Engine 5.x Studio .gitignore
+
+# Works for UE5.0 - UE5.7
+
+# ==========================================
+
+# -------------------------
+
+# OS files
+
+# -------------------------
+
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# -------------------------
+
+# IDE files
+
+# -------------------------
+
+.vs/
+.vscode/
+.idea/
+
+*.VC.db
+*.VC.opendb
+*.suo
+*.user
+*.userprefs
+*.sln.docstates
+
+# Rider
+
+*.DotSettings.user
+
+# -------------------------
+
+# Unreal generated folders
+
+# -------------------------
+
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+Build/
+
+# Build outputs
+
+Build/*/Binaries
+Build/*/Intermediate
+
+# Local builds
+
+LocalBuilds/
+
+# Engine intermediates (when engine source included)
+
+Engine/Intermediate/
+Engine/Saved/
+
+# -------------------------
+
+# Logs & temp
+
+# -------------------------
+
+*.log
+*.tmp
+*.cache
+*.pdb
+*.obj
+
+# Crash reports
+
+crashinfo--*
+
+# Shader cache
+
+*.ushaderbytecode
+
+# -------------------------
+
+# Packaging
+
+# -------------------------
+
+*.ipa
+*.apk
+*.aab
+*.app
+*.exe
+
+# -------------------------
+
+# Auto generated project files
+
+# -------------------------
+
+*.xcodeproj
+*.xcworkspace
+*.sln
+
+# -------------------------
+
+# Unreal build files
+
+# -------------------------
+
+*.target
+*.modules
+*.version
+
+# -------------------------
+
+# Ignore DDC but keep boot cache
+
+# -------------------------
+
+DerivedDataCache/*
+!DerivedDataCache/Boot.ddc
+
+# -------------------------
+
+# Keep important folders
+
+# -------------------------
+
+!Config/
+!Content/
+!Plugins/
+!Source/
+!*.uproject
+!*.uplugin
+
+# -------------------------
+
+# Optional: ignore large temp content
+
+# -------------------------
+
+Content/Developers/*
+
+# -------------------------
+
+# Optional: ignore autosaves
+
+# -------------------------
+
+Saved/Autosaves/
+Saved/Backup/
