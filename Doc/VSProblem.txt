@@ -1,0 +1,7 @@
+https://forums.unrealengine.com/t/the-setenv-task-failed-unexpectedly/2675115/13
+if you cannt compile the project
+
+
+Deleting the MaxSharedIncludePath in the UnrealBuildTool → BuildConfiguration.xml is a better solution.
+
+C:\Users\leeyo\AppData\Roaming\Unreal Engine\UnrealBuildTool
