@@ -5,3 +5,6 @@ if you cannt compile the project
 Deleting the MaxSharedIncludePath in the UnrealBuildTool → BuildConfiguration.xml is a better solution.
 
 C:\Users\leeyo\AppData\Roaming\Unreal Engine\UnrealBuildTool
+
+
+or just regenerate VS solution by ue project agagin...
