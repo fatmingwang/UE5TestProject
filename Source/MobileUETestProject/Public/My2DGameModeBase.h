@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "CameraPawn2D.h"
 #include "My2DGameModeBase.generated.h"
 
 /**
