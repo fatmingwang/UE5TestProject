@@ -18,33 +18,107 @@ void ACameraPawn2D::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 {
     Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+    UE_LOG(LogTemp, Warning, TEXT("=== SetupPlayerInputComponent Called ==="));
+    UE_LOG(LogTemp, Warning, TEXT("Pawn: %s, Controller: %s"), *GetName(), GetController() ? *GetController()->GetName() : TEXT("NULL"));
+    
+    if (!InputConfig)
+    {
+        UE_LOG(LogTemp, Error, TEXT("InputConfig is NULL! Assign it in the Blueprint/Details panel!"));
+        return;
+    }
+    
+    UE_LOG(LogTemp, Warning, TEXT("InputConfig is valid"));
+    
+    if (!InputConfig->ActionMove)
+    {
+        UE_LOG(LogTemp, Error, TEXT("InputConfig->ActionMove is NULL!"));
+    }
+    
+    if (!InputConfig->CameraContext)
+    {
+        UE_LOG(LogTemp, Error, TEXT("InputConfig->CameraContext is NULL!"));
+    }
+    
     // 1. Add Default Mapping Context
     if (APlayerController* PC = Cast<APlayerController>(GetController()))
     {
+        UE_LOG(LogTemp, Warning, TEXT("PlayerController found: %s"), *PC->GetName());
+        
         if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
         {
-            Subsystem->AddMappingContext(InputConfig->CameraContext, 0);
-            Subsystem->AddMappingContext(InputConfig->ToolContext, 1);
+            UE_LOG(LogTemp, Warning, TEXT("Enhanced Input Subsystem found"));
+            
+            if (InputConfig->CameraContext)
+            {
+                Subsystem->AddMappingContext(InputConfig->CameraContext, 0);
+                UE_LOG(LogTemp, Warning, TEXT("CameraContext added, NumMappings: %d"), InputConfig->CameraContext->GetMappings().Num());
+
+                // Debug: Print what actions are in the mapping context
+                for (const FEnhancedActionKeyMapping& Mapping : InputConfig->CameraContext->GetMappings())
+                {
+                    if (Mapping.Action)
+                    {
+                        UE_LOG(LogTemp, Warning, TEXT("  Mapped Action: %s, Key: %s"), *Mapping.Action->GetName(), *Mapping.Key.ToString());
+                    }
+                }
+            }
+
+            // Debug: Print what action we're trying to bind
+            if (InputConfig->ActionMove)
+            {
+                UE_LOG(LogTemp, Warning, TEXT("ActionMove to bind: %s"), *InputConfig->ActionMove->GetName());
+            }
+            
+            if (InputConfig->ToolContext)
+            {
+                Subsystem->AddMappingContext(InputConfig->ToolContext, 1);
+                UE_LOG(LogTemp, Warning, TEXT("ToolContext added"));
+            }
         }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("Enhanced Input Subsystem NOT found!"));
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("PlayerController NOT found!"));
     }
 
     // 2. Bind Actions
     if (UEnhancedInputComponent* EIC = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
     {
-        EIC->BindAction(InputConfig->ActionMove, ETriggerEvent::Triggered, this, &ACameraPawn2D::HandleMove);
-        EIC->BindAction(InputConfig->ActionClick, ETriggerEvent::Started, this, &ACameraPawn2D::HandleClick);
+        UE_LOG(LogTemp, Warning, TEXT("EnhancedInputComponent found"));
+        
+        if (InputConfig->ActionMove)
+        {
+            EIC->BindAction(InputConfig->ActionMove, ETriggerEvent::Triggered, this, &ACameraPawn2D::HandleMove);
+            UE_LOG(LogTemp, Warning, TEXT("ActionMove bound successfully"));
+        }
+        
+        if (InputConfig->ActionClick)
+        {
+            EIC->BindAction(InputConfig->ActionClick, ETriggerEvent::Started, this, &ACameraPawn2D::HandleClick);
+            UE_LOG(LogTemp, Warning, TEXT("ActionClick bound successfully"));
+        }
     }
 }
 
 void ACameraPawn2D::HandleMove(const FInputActionValue& Value)
 {
+    UE_LOG(LogTemp, Warning, TEXT(">>> HandleMove CALLED! <<<"));
     FVector2D MoveVec = Value.Get<FVector2D>();
+    UE_LOG(LogTemp, Warning, TEXT("Move Vector: X=%f, Y=%f"), MoveVec.X, MoveVec.Y);
     // Move along XY plane (Z remains constant)
     AddActorWorldOffset(FVector(MoveVec.Y * 10.f, MoveVec.X * 10.f, 0.f));
 }
 
 void ACameraPawn2D::HandleClick()
 {
+    if (!PinClass)
+    {
+        return;
+    }
     APlayerController* PC = Cast<APlayerController>(GetController());
     FHitResult Hit;
     // Trace against a plane at Z=0 or specific collision channel
@@ -141,22 +215,8 @@ void ACameraPawn2D::PawnClientRestart()
 {
     Super::PawnClientRestart();
 
-    // 1. Get the Player Controller
-    if (APlayerController* PC = Cast<APlayerController>(GetController()))
-    {
-        // 2. Get the Enhanced Input Local Player Subsystem
-        if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
-        {
-            // 3. Clear old contexts so they don't overlap
-            Subsystem->ClearAllMappings();
-
-        //    // 4. Add your Default IMC (WASD movement)
-        //    if (DefaultMappingContext)
-        //    {
-        //        Subsystem->AddMappingContext(DefaultMappingContext, 0);
-        //    }
-        }
-    }
+    // Note: Don't clear mappings here - SetupPlayerInputComponent handles adding contexts
+    // Clearing here would remove contexts added in SetupPlayerInputComponent
 }
 
 void ACameraPawn2D::SetEditorMode(bool bIsPlacementMode)

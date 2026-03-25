@@ -11,12 +11,13 @@ UCLASS()
 class MOBILEUETESTPROJECT_API ACameraPawn2D : public APawn
 {
     GENERATED_BODY()
+
     UPROPERTY(EditAnywhere, Category = "Input")
     UMyEditorInputConfig* InputConfig;
 
     UPROPERTY(EditAnywhere, Category = "Setup")
     TSubclassOf<AActor> PinClass; // The Actor to spawn
-    public:
+public:
     ACameraPawn2D();
 
 protected:
