@@ -14,6 +14,39 @@ ACameraPawn2D::ACameraPawn2D()
     CameraComponent->SetOrthoWidth(2048.f);
 }
 
+void ACameraPawn2D::PawnClientRestart()
+{
+    Super::PawnClientRestart();
+
+    // 1. Get the Player Controller
+    APlayerController* PC = Cast<APlayerController>(GetController());
+    if (!PC) return;
+
+    // 2. Get the Subsystem
+    ULocalPlayer* LocalPlayer = PC->GetLocalPlayer();
+    if (!LocalPlayer) return;
+
+    UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer);
+
+    if (Subsystem && InputConfig)
+    {
+        // 3. Clear old contexts to avoid "input ghosting" from the previous pawn
+        Subsystem->ClearAllMappings();
+
+        // 4. Add your new contexts
+        if (InputConfig->CameraContext)
+        {
+            Subsystem->AddMappingContext(InputConfig->CameraContext, 0);
+            UE_LOG(LogTemp, Warning, TEXT("CameraContext injected via PawnClientRestart"));
+        }
+
+        if (InputConfig->ToolContext)
+        {
+            Subsystem->AddMappingContext(InputConfig->ToolContext, 1);
+        }
+    }
+}
+
 void ACameraPawn2D::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
     Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -110,7 +143,8 @@ void ACameraPawn2D::HandleMove(const FInputActionValue& Value)
     FVector2D MoveVec = Value.Get<FVector2D>();
     UE_LOG(LogTemp, Warning, TEXT("Move Vector: X=%f, Y=%f"), MoveVec.X, MoveVec.Y);
     // Move along XY plane (Z remains constant)
-    AddActorWorldOffset(FVector(MoveVec.Y * 10.f, MoveVec.X * 10.f, 0.f));
+    //AddActorWorldOffset(FVector(MoveVec.X * 100.f, MoveVec.Y * 100.f, 0.f));
+    AddActorWorldOffset(FVector(MoveVec.Y * 100.f, 0,MoveVec.X * 100.f));
 }
 
 void ACameraPawn2D::HandleClick()
@@ -209,14 +243,6 @@ FVector ACameraPawn2D::GetWorldPositionFromScreen(const FVector2D& ScreenPositio
         }
     }
     return FVector::ZeroVector;
-}
-
-void ACameraPawn2D::PawnClientRestart()
-{
-    Super::PawnClientRestart();
-
-    // Note: Don't clear mappings here - SetupPlayerInputComponent handles adding contexts
-    // Clearing here would remove contexts added in SetupPlayerInputComponent
 }
 
 void ACameraPawn2D::SetEditorMode(bool bIsPlacementMode)

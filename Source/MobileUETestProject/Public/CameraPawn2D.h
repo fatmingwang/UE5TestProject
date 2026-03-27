@@ -22,6 +22,7 @@ public:
 
 protected:
     virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+    virtual void PawnClientRestart() override;
     void HandleMove(const FInputActionValue& Value);
     void HandleClick();
 
@@ -55,6 +56,5 @@ private:
     FVector2D GetMousePosition() const;
     FVector GetWorldPositionFromScreen(const FVector2D& ScreenPosition) const;
 
-    void PawnClientRestart();
     void SetEditorMode(bool bIsPlacementMode);
 };
