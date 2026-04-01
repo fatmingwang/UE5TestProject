@@ -1,4 +1,4 @@
-#include "CameraPawn2D.h"
+﻿#include "CameraPawn2D.h"
 #include "GameFramework/PlayerController.h"
 #include "Engine/World.h"
 #include "EnhancedInputComponent.h"
@@ -6,6 +6,7 @@
 
 ACameraPawn2D::ACameraPawn2D()
 {
+    PanSpeed = 10.f;
     PrimaryActorTick.bCanEverTick = false;
 
     CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
@@ -52,169 +53,171 @@ void ACameraPawn2D::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
     Super::SetupPlayerInputComponent(PlayerInputComponent);
 
     UE_LOG(LogTemp, Warning, TEXT("=== SetupPlayerInputComponent Called ==="));
-    UE_LOG(LogTemp, Warning, TEXT("Pawn: %s, Controller: %s"), *GetName(), GetController() ? *GetController()->GetName() : TEXT("NULL"));
     
     if (!InputConfig)
     {
         UE_LOG(LogTemp, Error, TEXT("InputConfig is NULL! Assign it in the Blueprint/Details panel!"));
         return;
     }
-    
-    UE_LOG(LogTemp, Warning, TEXT("InputConfig is valid"));
-    
-    if (!InputConfig->ActionMove)
-    {
-        UE_LOG(LogTemp, Error, TEXT("InputConfig->ActionMove is NULL!"));
-    }
-    
-    if (!InputConfig->CameraContext)
-    {
-        UE_LOG(LogTemp, Error, TEXT("InputConfig->CameraContext is NULL!"));
-    }
-    
-    // 1. Add Default Mapping Context
-    if (APlayerController* PC = Cast<APlayerController>(GetController()))
-    {
-        UE_LOG(LogTemp, Warning, TEXT("PlayerController found: %s"), *PC->GetName());
-        
-        if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
-        {
-            UE_LOG(LogTemp, Warning, TEXT("Enhanced Input Subsystem found"));
-            
-            if (InputConfig->CameraContext)
-            {
-                Subsystem->AddMappingContext(InputConfig->CameraContext, 0);
-                UE_LOG(LogTemp, Warning, TEXT("CameraContext added, NumMappings: %d"), InputConfig->CameraContext->GetMappings().Num());
 
-                // Debug: Print what actions are in the mapping context
-                for (const FEnhancedActionKeyMapping& Mapping : InputConfig->CameraContext->GetMappings())
-                {
-                    if (Mapping.Action)
-                    {
-                        UE_LOG(LogTemp, Warning, TEXT("  Mapped Action: %s, Key: %s"), *Mapping.Action->GetName(), *Mapping.Key.ToString());
-                    }
-                }
-            }
-
-            // Debug: Print what action we're trying to bind
-            if (InputConfig->ActionMove)
-            {
-                UE_LOG(LogTemp, Warning, TEXT("ActionMove to bind: %s"), *InputConfig->ActionMove->GetName());
-            }
-            
-            if (InputConfig->ToolContext)
-            {
-                Subsystem->AddMappingContext(InputConfig->ToolContext, 1);
-                UE_LOG(LogTemp, Warning, TEXT("ToolContext added"));
-            }
-        }
-        else
-        {
-            UE_LOG(LogTemp, Error, TEXT("Enhanced Input Subsystem NOT found!"));
-        }
-    }
-    else
+    // Bind Actions ONLY - Do NOT add mapping contexts here
+    if (UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(PlayerInputComponent))
     {
-        UE_LOG(LogTemp, Error, TEXT("PlayerController NOT found!"));
-    }
-
-    // 2. Bind Actions
-    if (UEnhancedInputComponent* EIC = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
-    {
-        UE_LOG(LogTemp, Warning, TEXT("EnhancedInputComponent found"));
+        UE_LOG(LogTemp, Warning, TEXT("EnhancedInputComponent found - Binding actions"));
         
         if (InputConfig->ActionMove)
         {
-            EIC->BindAction(InputConfig->ActionMove, ETriggerEvent::Triggered, this, &ACameraPawn2D::HandleMove);
+            EIC->BindAction(InputConfig->ActionMove, ETriggerEvent::Triggered, this, &ACameraPawn2D::HandleMoveByKeyboardWASD);
             UE_LOG(LogTemp, Warning, TEXT("ActionMove bound successfully"));
         }
         
         if (InputConfig->ActionClick)
         {
-            EIC->BindAction(InputConfig->ActionClick, ETriggerEvent::Started, this, &ACameraPawn2D::HandleClick);
+            EIC->BindAction(InputConfig->ActionClick, ETriggerEvent::Completed, this, &ACameraPawn2D::HandleClick);
             UE_LOG(LogTemp, Warning, TEXT("ActionClick bound successfully"));
         }
+        
+        if (InputConfig->ActionZoom)
+        {
+            EIC->BindAction(InputConfig->ActionZoom, ETriggerEvent::Triggered, this, &ACameraPawn2D::HandleZoom);
+            UE_LOG(LogTemp, Warning, TEXT("ActionZoom bound successfully"));
+        }
+        
+        // Bind Right Mouse Button for panning
+        if (InputConfig->ActionRightMouseClick)
+        {
+            EIC->BindAction(InputConfig->ActionRightMouseClick, ETriggerEvent::Started, this, &ACameraPawn2D::HandleRightMousePressed);
+            EIC->BindAction(InputConfig->ActionRightMouseClick, ETriggerEvent::Completed, this, &ACameraPawn2D::HandleRightMouseReleased);
+            UE_LOG(LogTemp, Warning, TEXT("ActionRightMouseClick bound successfully"));
+        }
+        
+        // Bind Mouse Movement for panning
+        if (InputConfig->ActionMouseMove)
+        {
+            EIC->BindAction(InputConfig->ActionMouseMove, ETriggerEvent::Triggered, this, &ACameraPawn2D::HandleMouseMove);
+            UE_LOG(LogTemp, Warning, TEXT("ActionMouseMove bound successfully"));
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to cast to EnhancedInputComponent"));
     }
 }
 
-void ACameraPawn2D::HandleMove(const FInputActionValue& Value)
+void ACameraPawn2D::HandleMoveByKeyboardWASD(const FInputActionValue& Value)
 {
-    UE_LOG(LogTemp, Warning, TEXT(">>> HandleMove CALLED! <<<"));
+    //UE_LOG(LogTemp, Warning, TEXT(">>> HandleMoveByKeyboardWASD CALLED! <<<"));
     FVector2D MoveVec = Value.Get<FVector2D>();
-    UE_LOG(LogTemp, Warning, TEXT("Move Vector: X=%f, Y=%f"), MoveVec.X, MoveVec.Y);
+    //UE_LOG(LogTemp, Warning, TEXT("Move Vector: X=%f, Y=%f"), MoveVec.X, MoveVec.Y);
     // Move along XY plane (Z remains constant)
-    //AddActorWorldOffset(FVector(MoveVec.X * 100.f, MoveVec.Y * 100.f, 0.f));
-    AddActorWorldOffset(FVector(MoveVec.Y * 100.f, 0,MoveVec.X * 100.f));
+    AddActorWorldOffset(FVector(MoveVec.Y * 20.f, -MoveVec.X * 20.f, 0.f));
 }
 
 void ACameraPawn2D::HandleClick()
 {
     if (!PinClass)
     {
+        UE_LOG(LogTemp, Error, TEXT("PinClass is NULL!"));
         return;
     }
+    
     APlayerController* PC = Cast<APlayerController>(GetController());
-    FHitResult Hit;
-    // Trace against a plane at Z=0 or specific collision channel
-    if (PC->GetHitResultUnderCursor(ECC_Visibility, false, Hit))
+    if (!PC)
     {
-        // Simple Grid Snap (e.g., 50 units)
-        FVector SpawnPos = Hit.Location;
-        SpawnPos.X = FMath::GridSnap(SpawnPos.X, 50.f);
-        SpawnPos.Y = FMath::GridSnap(SpawnPos.Y, 50.f);
-        SpawnPos.Z = 0.f;
-
-        GetWorld()->SpawnActor<AActor>(PinClass, SpawnPos, FRotator::ZeroRotator);
+        UE_LOG(LogTemp, Error, TEXT("PlayerController is NULL!"));
+        return;
     }
+    
+    // Get mouse position
+    float MouseX, MouseY;
+    if (!PC->GetMousePosition(MouseX, MouseY))
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to get mouse position!"));
+        return;
+    }
+    
+    // Deproject to world
+    FVector WorldLocation, WorldDirection;
+    PC->DeprojectScreenPositionToWorld(MouseX, MouseY, WorldLocation, WorldDirection);
+    
+    FVector SpawnPos = WorldLocation;
+    SpawnPos.Z = 0.0f;
+    
+    // Spawn the actor
+    AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(PinClass, SpawnPos, FRotator::ZeroRotator);
+    
+    if (SpawnedActor)
+    {
+        // Prevent spawned actor from capturing input
+        SpawnedActor->DisableInput(PC);
+        
+
+        // Log actor's position
+        UE_LOG(LogTemp, Log, TEXT("Actor Position: %s"), *SpawnedActor->GetActorLocation().ToString());
+
+        UE_LOG(LogTemp, Warning, TEXT("✅ Spawned: %s at %s"), 
+            *SpawnedActor->GetName(), *SpawnPos.ToString());
+
+    }
+    
+    // CRITICAL: Reset input mode to ensure continued mouse input
+    FInputModeGameAndUI InputMode;
+    InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+    InputMode.SetHideCursorDuringCapture(false);
+    PC->SetInputMode(InputMode);
+    
+    // Ensure mouse cursor stays visible
+    PC->bShowMouseCursor = true;
+    PC->bEnableClickEvents = true;
 }
 
-void ACameraPawn2D::OnPanPressed()
+void ACameraPawn2D::HandleRightMousePressed()
 {
     bIsPanning = true;
     LastMousePosition = GetMousePosition();
+    //UE_LOG(LogTemp, Warning, TEXT(">>> Panning Started <<<"));
 }
 
-void ACameraPawn2D::OnPanReleased()
+void ACameraPawn2D::HandleRightMouseReleased()
 {
     bIsPanning = false;
+    //UE_LOG(LogTemp, Warning, TEXT(">>> Panning Stopped <<<"));
 }
 
-void ACameraPawn2D::OnMouseX(float AxisValue)
+void ACameraPawn2D::HandleMouseMove(const FInputActionValue& Value)
 {
     if (bIsPanning)
     {
-        FVector2D CurrentMousePosition = GetMousePosition();
-        FVector2D Delta = CurrentMousePosition - LastMousePosition;
-        LastMousePosition = CurrentMousePosition;
-
-        // Move camera opposite to mouse drag for natural pan
-        FVector Location = GetActorLocation();
-        Location -= FVector(Delta.X * PanSpeed, Delta.Y * PanSpeed, 0.f);
-        SetActorLocation(Location);
+        FVector2D MouseDelta = Value.Get<FVector2D>();
+        
+        // For 2D camera panning, move the camera in the opposite direction of mouse movement
+        FVector CurrentLocation = GetActorLocation();
+        
+        // Negative delta for natural panning (drag right = camera moves right)
+        // Adjust based on your camera orientation and desired panning feel
+        CurrentLocation.X += MouseDelta.X * PanSpeed;
+        CurrentLocation.Y += MouseDelta.Y * PanSpeed;
+        
+        SetActorLocation(CurrentLocation);
+        
+        //UE_LOG(LogTemp, Log, TEXT("Panning - Delta: (%f, %f), New Position: %s"), MouseDelta.X, MouseDelta.Y, *CurrentLocation.ToString());
     }
 }
 
-void ACameraPawn2D::OnMouseY(float AxisValue)
+void ACameraPawn2D::HandleZoom(const FInputActionValue& Value)
 {
-    // Handled together with MouseX inside OnMouseX for panning
-}
-
-void ACameraPawn2D::OnZoom(float AxisValue)
-{
+    float AxisValue = Value.Get<float>();
+    //UE_LOG(LogTemp, Warning, TEXT(">>> HandleZoom CALLED! Zoom Value: %f <<<"), AxisValue);
+    
     if (FMath::Abs(AxisValue) > KINDA_SMALL_NUMBER)
     {
-        float NewWidth = CameraComponent->OrthoWidth - AxisValue * ZoomStep;
+        float OldWidth = CameraComponent->OrthoWidth;
+        float NewWidth = OldWidth - AxisValue * ZoomStep;
         NewWidth = FMath::Clamp(NewWidth, MinOrthoWidth, MaxOrthoWidth);
         CameraComponent->SetOrthoWidth(NewWidth);
+        
+        //UE_LOG(LogTemp, Warning, TEXT("Zoom: %f -> %f (Delta: %f)"), OldWidth, NewWidth, AxisValue);
     }
-}
-
-void ACameraPawn2D::OnClick()
-{
-    FVector2D MousePos = GetMousePosition();
-    FVector WorldPos = GetWorldPositionFromScreen(MousePos);
-
-    UE_LOG(LogTemp, Log, TEXT("Clicked world position: %s"), *WorldPos.ToString());
 }
 
 FVector2D ACameraPawn2D::GetMousePosition() const

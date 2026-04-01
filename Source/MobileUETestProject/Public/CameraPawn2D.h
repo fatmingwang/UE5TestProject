@@ -11,7 +11,7 @@ UCLASS()
 class MOBILEUETESTPROJECT_API ACameraPawn2D : public APawn
 {
     GENERATED_BODY()
-
+protected:
     UPROPERTY(EditAnywhere, Category = "Input")
     UMyEditorInputConfig* InputConfig;
 
@@ -23,8 +23,9 @@ public:
 protected:
     virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
     virtual void PawnClientRestart() override;
-    void HandleMove(const FInputActionValue& Value);
+    void HandleMoveByKeyboardWASD(const FInputActionValue& Value);
     void HandleClick();
+    void HandleZoom(const FInputActionValue& Value);
 
 private:
     UPROPERTY(VisibleAnywhere)
@@ -46,12 +47,9 @@ private:
     float MaxOrthoWidth = 4096.0f;
 
     // Input handlers
-    void OnPanPressed();
-    void OnPanReleased();
-    void OnMouseX(float AxisValue);
-    void OnMouseY(float AxisValue);
-    void OnZoom(float AxisValue);
-    void OnClick();
+    void HandleRightMousePressed();
+    void HandleRightMouseReleased();
+    void HandleMouseMove(const FInputActionValue& Value);
 
     FVector2D GetMousePosition() const;
     FVector GetWorldPositionFromScreen(const FVector2D& ScreenPosition) const;

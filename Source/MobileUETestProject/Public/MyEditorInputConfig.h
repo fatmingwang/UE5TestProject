@@ -25,6 +25,16 @@ class MOBILEUETESTPROJECT_API UMyEditorInputConfig : public UDataAsset
     UPROPERTY(EditAnywhere, Category = "Actions")
     UInputAction* ActionMove;            // Axis2D
 
+
+    UPROPERTY(EditAnywhere, Category = "Actions")
+    UInputAction* ActionMouseMove;            // Axis2D
+
+    UPROPERTY(EditAnywhere, Category = "Actions")
+    UInputAction* ActionRightMouseClick;           // Digital (bool)	
+
     UPROPERTY(EditAnywhere, Category = "Actions")
     UInputAction* ActionClick;           // Digital (bool)	
+
+    UPROPERTY(EditAnywhere, Category = "Actions")
+    UInputAction* ActionZoom;            // axis 1D
 };
