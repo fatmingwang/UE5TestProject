@@ -196,7 +196,7 @@ void ACameraPawn2D::HandleMouseMove(const FInputActionValue& Value)
         // Negative delta for natural panning (drag right = camera moves right)
         // Adjust based on your camera orientation and desired panning feel
         CurrentLocation.X += MouseDelta.X * PanSpeed;
-        CurrentLocation.Y += MouseDelta.Y * PanSpeed;
+        CurrentLocation.Y += -MouseDelta.Y * PanSpeed;
         
         SetActorLocation(CurrentLocation);
         
