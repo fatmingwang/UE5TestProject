@@ -7,8 +7,16 @@ public class MobileUETestProject : ModuleRules
 	public MobileUETestProject(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" , "EnhancedInput" });
+
+		PublicDependencyModuleNames.AddRange(new string[] { 
+			"Core", 
+			"CoreUObject", 
+			"Engine", 
+			"InputCore", 
+			"EnhancedInput",
+			"Json",              // Required for JSON serialization
+			"JsonUtilities"      // Required for JSON helper functions
+		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

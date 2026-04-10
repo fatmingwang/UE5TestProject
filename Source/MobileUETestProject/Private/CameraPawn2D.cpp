@@ -3,6 +3,7 @@
 #include "Engine/World.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "LevelDataManager.h"
 
 ACameraPawn2D::ACameraPawn2D()
 {
@@ -145,12 +146,14 @@ void ACameraPawn2D::HandleClick()
     
     // Spawn the actor
     AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(PinClass, SpawnPos, FRotator::ZeroRotator);
-    
+
     if (SpawnedActor)
     {
         // Prevent spawned actor from capturing input
         SpawnedActor->DisableInput(PC);
-        
+
+        // Add tag so it can be saved/loaded
+        SpawnedActor->Tags.AddUnique(SAVEABLE_ACTOR_TAG);
 
         // Log actor's position
         UE_LOG(LogTemp, Log, TEXT("Actor Position: %s"), *SpawnedActor->GetActorLocation().ToString());
