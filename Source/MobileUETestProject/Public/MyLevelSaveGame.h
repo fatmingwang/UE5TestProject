@@ -1,7 +1,8 @@
 #pragma once
+#pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/SaveGame.h"
+#include "SaveGameRegistry.h"
 #include "MyLevelSaveGame.generated.h"
 
 // Struct to store actor information
@@ -28,7 +29,7 @@ struct FActorSaveData
  * Save game class to store level actor information
  */
 UCLASS()
-class MOBILEUETESTPROJECT_API UMyLevelSaveGame : public USaveGame
+class MOBILEUETESTPROJECT_API UMyLevelSaveGame : public URegisteredSaveGame
 {
     GENERATED_BODY()
 

@@ -1,5 +1,5 @@
 #include "LevelDataManager.h"
-#include "LevelDataManager.h"
+#include "SaveGameRegistry.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 #include "Misc/FileHelper.h"
@@ -7,6 +7,7 @@
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
 #include "Dom/JsonObject.h"
+#include "SaveGameRegistry.h"
 
 ALevelDataManager::ALevelDataManager()
 {
@@ -78,6 +79,7 @@ bool ALevelDataManager::SaveLevelActors(const FString& SlotName, const FName& Ac
 
     // Clear previous data
     SaveGameInstance->SavedActors.Empty();
+    SaveGameInstance->SlotName = SlotName;
     SaveGameInstance->LevelName = GetWorld()->GetMapName();
     SaveGameInstance->SaveTime = FDateTime::Now();
 
@@ -101,10 +103,12 @@ bool ALevelDataManager::SaveLevelActors(const FString& SlotName, const FName& Ac
     }
 
     // Save to disk
-    bool bSuccess = UGameplayStatics::SaveGameToSlot(SaveGameInstance, SlotName, 0);
+    //bool bSuccess = UGameplayStatics::SaveGameToSlot(SaveGameInstance, SlotName, 0);
+    bool bSuccess = USaveGameRegistry::SaveGame(GetWorld(),SaveGameInstance, SlotName, 0);
 
     if (bSuccess)
     {
+
         UE_LOG(LogTemp, Warning, TEXT("? Successfully saved %d actors to slot '%s'"), 
             SaveGameInstance->SavedActors.Num(), *SlotName);
     }

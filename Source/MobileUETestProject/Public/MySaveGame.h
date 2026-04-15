@@ -3,14 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/SaveGame.h"
+#include "SaveGameRegistry.h"
 #include "MySaveGame.generated.h"
 
 /**
- * 
+ * Save game for player transform.
+ * Inherits URegisteredSaveGame so it is automatically tracked by the registry.
  */
 UCLASS()
-class MOBILEUETESTPROJECT_API UMySaveGame : public USaveGame
+class MOBILEUETESTPROJECT_API UMySaveGame : public URegisteredSaveGame
 {
 	GENERATED_BODY()
 public:
@@ -29,7 +30,7 @@ public:
 	// Static helper functions
 	UFUNCTION(BlueprintCallable, Category = "SaveGame", meta = (WorldContext = "WorldContextObject"))
 	static void SaveGame(UObject* WorldContextObject);
-	
+
 	UFUNCTION(BlueprintCallable, Category = "SaveGame", meta = (WorldContext = "WorldContextObject"))
 	static void LoadGame(UObject* WorldContextObject);
 };

@@ -1,4 +1,5 @@
 #include "MySaveGame.h"
+#include "SaveGameRegistry.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Pawn.h"
 
@@ -25,8 +26,8 @@ void UMySaveGame::SaveGame(UObject* WorldContextObject)
 			SaveGameInstance->SavedPlayerRotation = PlayerPawn->GetActorRotation();
 		}
 
-		// Save to slot
-		if (UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveSlotName, 0))
+		// Save to slot and register in one call
+		if (USaveGameRegistry::SaveGame(WorldContextObject, SaveGameInstance, SaveSlotName, 0))
 		{
 			UE_LOG(LogTemp, Log, TEXT("Game saved successfully!"));
 		}
