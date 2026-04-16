@@ -23,6 +23,8 @@ public:
 protected:
     virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
     virtual void PawnClientRestart() override;
+    virtual void BeginPlay() override;
+    virtual void Tick(float DeltaTime) override;
     void HandleMoveByKeyboardWASD(const FInputActionValue& Value);
     void HandleClick();
     void HandleZoom(const FInputActionValue& Value);
@@ -35,7 +37,7 @@ private:
     FVector2D LastMousePosition;
 
     UPROPERTY(EditAnywhere)
-    float PanSpeed = 1.0f;
+    float PanSpeed = 5.0f;
 
     UPROPERTY(EditAnywhere)
     float ZoomStep = 100.0f;
