@@ -8,52 +8,67 @@
 
 ACameraPawn2D::ACameraPawn2D()
 {
-    PanSpeed = 100.f;
+    PanSpeed = 50.f;
     PrimaryActorTick.bCanEverTick = true;
 
     CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
     RootComponent = CameraComponent;
     CameraComponent->SetProjectionMode(ECameraProjectionMode::Orthographic);
     CameraComponent->SetOrthoWidth(2048.f);
+    m_bFlipXYIfXIsRotation90Degree = false;
+}
+
+void ACameraPawn2D::SetPlayerControllerMouseBehivor()
+{
+    APlayerController* PC = Cast<APlayerController>(GetController());
+    if (!PC)
+    {
+        return;
+    }
+    //PC->bShowMouseCursor = true;
+    PC->bEnableClickEvents = true;
+    PC->bShowMouseCursor = true;                    // Hide real cursor
+    PC->SetInputMode(FInputModeGameOnly());
+
+    if (UGameViewportClient* ViewportClient = GetWorld()->GetGameViewport())
+    {
+        ViewportClient->SetMouseCaptureMode(EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown);
+        ViewportClient->SetMouseLockMode(EMouseLockMode::LockAlways);
+    }
+    //get X rotation  if its 90 then make m_bFlipXYIfXIsRotation90Degree  to true
+    float XRotation = GetActorRotation().Pitch; // Roll = rotation around X axis
+    m_bFlipXYIfXIsRotation90Degree = FMath::IsNearlyEqual(XRotation, -90.f, 1.f);
+	UE_LOG(LogTemp, Warning, TEXT("CameraPawn2D Rotation Pitch: %f, m_bFlipXYIfXIsRotation90Degree: %s"), XRotation, m_bFlipXYIfXIsRotation90Degree ? TEXT("true") : TEXT("false"));
+
+    //this->getcompo
 }
 
 void ACameraPawn2D::BeginPlay()
 {
     Super::BeginPlay();
-
-    APlayerController* PC = Cast<APlayerController>(GetController());
-    if (!PC) return;
-
-    //PC->bShowMouseCursor = true;
-    PC->bEnableClickEvents = true;
-    PC->bShowMouseCursor = false;                    // Hide real cursor
-    PC->SetInputMode(FInputModeGameOnly());
-    //PC->SetInputMode(FInputModeGameAndUI());
-
-    // CapturePermanently: mouse input ALWAYS reaches Enhanced Input regardless of
-    // which button is pressed first. DoNotLock keeps cursor freely movable.
-    if (UGameViewportClient* ViewportClient = GetWorld()->GetGameViewport())
-    {
-        ViewportClient->SetMouseCaptureMode(EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown);
-        ViewportClient->SetMouseLockMode(EMouseLockMode::DoNotLock);
-    }
+    UE_LOG(LogTemp, Warning, TEXT("ACameraPawn2D::BeginPlay"));
+    SetPlayerControllerMouseBehivor();
 }
 
 void ACameraPawn2D::PawnClientRestart()
 {
     Super::PawnClientRestart();
-
     // 1. Get the Player Controller
     APlayerController* PC = Cast<APlayerController>(GetController());
-    if (!PC) return;
+    if (!PC)
+    {
+        return;
+    }
 
     // 2. Get the Subsystem
     ULocalPlayer* LocalPlayer = PC->GetLocalPlayer();
-    if (!LocalPlayer) return;
-
+    if (!LocalPlayer)
+    {
+        return;
+    }
     UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer);
 
-    if (Subsystem && InputConfig)
+    if (Subsystem && InputConfig)    
     {
         // 3. Clear old contexts to avoid "input ghosting" from the previous pawn
         Subsystem->ClearAllMappings();
@@ -66,19 +81,7 @@ void ACameraPawn2D::PawnClientRestart()
         }
 
     }
-
-    //PC->bShowMouseCursor = true;
-    PC->bEnableClickEvents = true;
-    //PC->SetInputMode(FInputModeGameAndUI());
-    PC->bShowMouseCursor = false;                    // Hide real cursor
-    PC->SetInputMode(FInputModeGameOnly());
-    // CapturePermanently: mouse input ALWAYS reaches Enhanced Input regardless of
-    // which button is pressed first. DoNotLock keeps cursor freely movable.
-    if (UGameViewportClient* ViewportClient = GetWorld()->GetGameViewport())
-    {
-        ViewportClient->SetMouseCaptureMode(EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown);
-        ViewportClient->SetMouseLockMode(EMouseLockMode::DoNotLock);
-    }
+    SetPlayerControllerMouseBehivor();
 }
 
 void ACameraPawn2D::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -138,10 +141,22 @@ void ACameraPawn2D::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
     }
 }
 
+FVector2D ACameraPawn2D::GetMovedVec(FVector2D e_MoveVec)
+{
+    if (m_bFlipXYIfXIsRotation90Degree)
+    {
+        FVector2D l_Original = e_MoveVec;
+        e_MoveVec.X = l_Original.Y;
+        e_MoveVec.Y = -l_Original.X;
+    }
+	return e_MoveVec;
+}
+
 void ACameraPawn2D::HandleMoveByKeyboardWASD(const FInputActionValue& Value)
 {
     //UE_LOG(LogTemp, Warning, TEXT(">>> HandleMoveByKeyboardWASD CALLED! <<<"));
     FVector2D MoveVec = Value.Get<FVector2D>();
+    MoveVec = GetMovedVec(MoveVec);
     //UE_LOG(LogTemp, Warning, TEXT("Move Vector: X=%f, Y=%f"), MoveVec.X, MoveVec.Y);
     // Move along XY plane (Z remains constant)
     AddActorWorldOffset(FVector(MoveVec.Y * 20.f, -MoveVec.X * 20.f, 0.f));
@@ -229,8 +244,11 @@ void ACameraPawn2D::HandleCameraPan(const FInputActionValue& Value)
 
     FVector2D Delta = Value.Get<FVector2D>();
 
-    if (Delta.IsNearlyZero()) return;
-
+    if (Delta.IsNearlyZero())
+    {
+        return;
+    }
+    Delta = GetMovedVec(Delta);
     FVector Loc = GetActorLocation();
     Loc.X -= Delta.X * PanSpeed ;
     Loc.Y += Delta.Y * PanSpeed ;

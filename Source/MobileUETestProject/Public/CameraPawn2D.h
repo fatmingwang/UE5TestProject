@@ -17,6 +17,7 @@ protected:
 
     UPROPERTY(EditAnywhere, Category = "Setup")
     TSubclassOf<AActor> PinClass; // The Actor to spawn
+	bool m_bFlipXYIfXIsRotation90Degree ; // Whether to flip X and Y axes when rotation is 90 degrees
 public:
     ACameraPawn2D();
 
@@ -28,6 +29,8 @@ protected:
     void HandleMoveByKeyboardWASD(const FInputActionValue& Value);
     void HandleClick();
     void HandleZoom(const FInputActionValue& Value);
+    void SetPlayerControllerMouseBehivor();
+    FVector2D GetMovedVec(FVector2D e_MoveVec);
 
 private:
     UPROPERTY(VisibleAnywhere)
