@@ -15,26 +15,22 @@ UCLASS()
 class MOBILEUETESTPROJECT_API UMyEditorInputConfig : public UDataAsset
 {
 	GENERATED_BODY()
-    public:
-    UPROPERTY(EditAnywhere, Category = "Contexts")
-    UInputMappingContext* CameraContext; // WASD Move
+public:
+    UPROPERTY(EditAnywhere, Category = "Actions", meta = (DisplayName = "Camera Input Mapping Cotext"))
+    UInputMappingContext* m_CameraIMC; // WASD Move
 
-    UPROPERTY(EditAnywhere, Category = "Contexts")
-    UInputMappingContext* ToolContext;   // Click to Place
+    UPROPERTY(EditAnywhere, Category = "Actions", meta = (DisplayName = "KeyBoard WASD"))
+    UInputAction* m_KeyboardActionMove;            // Axis2D
 
-    UPROPERTY(EditAnywhere, Category = "Actions")
-    UInputAction* ActionMove;            // Axis2D
+    UPROPERTY(EditAnywhere, Category = "Actions", meta = (DisplayName = "Mouse Move"))
+    UInputAction* m_MouseActionMove;      // Axis2D
 
+    UPROPERTY(EditAnywhere, Category = "Actions", meta = (DisplayName = "Right Mouse Button Move"))
+    UInputAction* m_MouseRightButtonAction;// Digital (bool)	
 
-    UPROPERTY(EditAnywhere, Category = "Actions")
-    UInputAction* ActionMouseMove;            // Axis2D
-
-    UPROPERTY(EditAnywhere, Category = "Actions")
-    UInputAction* ActionRightMouseClick;           // Digital (bool)	
-
-    UPROPERTY(EditAnywhere, Category = "Actions")
-    UInputAction* ActionClick;           // Digital (bool)	
+    UPROPERTY(EditAnywhere, Category = "Actions", meta = (DisplayName = "Left Mouse Button Move"))
+    UInputAction* m_MouseLeftButtonActionMove;           // Digital (bool)	
 
     UPROPERTY(EditAnywhere, Category = "Actions")
-    UInputAction* ActionZoom;            // axis 1D
+    UInputAction* m_MouseWheelActionZoom;            // axis 1D
 };

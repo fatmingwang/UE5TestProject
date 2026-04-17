@@ -33,7 +33,7 @@ private:
     UPROPERTY(VisibleAnywhere)
     UCameraComponent* CameraComponent;
 
-    bool bIsPanning = false;
+    //bool bIsPanning = false;
     FVector2D LastMousePosition;
 
     UPROPERTY(EditAnywhere)
@@ -49,9 +49,9 @@ private:
     float MaxOrthoWidth = 4096.0f;
 
     // Input handlers
-    void HandleRightMousePressed();
-    void HandleRightMouseReleased();
-    void HandleMouseMove(const FInputActionValue& Value);
+    //void HandleRightMousePressed();
+    //void HandleRightMouseReleased();
+    void HandleCameraPan(const FInputActionValue& Value);
 
     FVector2D GetMousePosition() const;
     FVector GetWorldPositionFromScreen(const FVector2D& ScreenPosition) const;

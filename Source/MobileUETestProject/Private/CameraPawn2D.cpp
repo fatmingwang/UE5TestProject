@@ -24,8 +24,11 @@ void ACameraPawn2D::BeginPlay()
     APlayerController* PC = Cast<APlayerController>(GetController());
     if (!PC) return;
 
-    PC->bShowMouseCursor = true;
+    //PC->bShowMouseCursor = true;
     PC->bEnableClickEvents = true;
+    PC->bShowMouseCursor = false;                    // Hide real cursor
+    PC->SetInputMode(FInputModeGameOnly());
+    //PC->SetInputMode(FInputModeGameAndUI());
 
     // CapturePermanently: mouse input ALWAYS reaches Enhanced Input regardless of
     // which button is pressed first. DoNotLock keeps cursor freely movable.
@@ -56,21 +59,19 @@ void ACameraPawn2D::PawnClientRestart()
         Subsystem->ClearAllMappings();
 
         // 4. Add your new contexts
-        if (InputConfig->CameraContext)
+        if (InputConfig->m_CameraIMC)
         {
-            Subsystem->AddMappingContext(InputConfig->CameraContext, 0);
+            Subsystem->AddMappingContext(InputConfig->m_CameraIMC, 0);
             UE_LOG(LogTemp, Warning, TEXT("CameraContext injected via PawnClientRestart"));
         }
 
-        if (InputConfig->ToolContext)
-        {
-            Subsystem->AddMappingContext(InputConfig->ToolContext, 1);
-        }
     }
 
-    PC->bShowMouseCursor = true;
+    //PC->bShowMouseCursor = true;
     PC->bEnableClickEvents = true;
-
+    //PC->SetInputMode(FInputModeGameAndUI());
+    PC->bShowMouseCursor = false;                    // Hide real cursor
+    PC->SetInputMode(FInputModeGameOnly());
     // CapturePermanently: mouse input ALWAYS reaches Enhanced Input regardless of
     // which button is pressed first. DoNotLock keeps cursor freely movable.
     if (UGameViewportClient* ViewportClient = GetWorld()->GetGameViewport())
@@ -97,38 +98,37 @@ void ACameraPawn2D::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
     {
         UE_LOG(LogTemp, Warning, TEXT("EnhancedInputComponent found - Binding actions"));
         
-        if (InputConfig->ActionMove)
+        if (InputConfig->m_KeyboardActionMove)
         {
-            EIC->BindAction(InputConfig->ActionMove, ETriggerEvent::Triggered, this, &ACameraPawn2D::HandleMoveByKeyboardWASD);
+            EIC->BindAction(InputConfig->m_KeyboardActionMove, ETriggerEvent::Triggered, this, &ACameraPawn2D::HandleMoveByKeyboardWASD);
             UE_LOG(LogTemp, Warning, TEXT("ActionMove bound successfully"));
         }
         
-        if (InputConfig->ActionClick)
+        if (InputConfig->m_MouseLeftButtonActionMove)
         {
-            EIC->BindAction(InputConfig->ActionClick, ETriggerEvent::Started, this, &ACameraPawn2D::HandleClick);
+            EIC->BindAction(InputConfig->m_MouseLeftButtonActionMove, ETriggerEvent::Started, this, &ACameraPawn2D::HandleClick);
             UE_LOG(LogTemp, Warning, TEXT("ActionClick bound successfully"));
         }
         
-        if (InputConfig->ActionZoom)
+        if (InputConfig->m_MouseWheelActionZoom)
         {
-            EIC->BindAction(InputConfig->ActionZoom, ETriggerEvent::Triggered, this, &ACameraPawn2D::HandleZoom);
+            EIC->BindAction(InputConfig->m_MouseWheelActionZoom, ETriggerEvent::Triggered, this, &ACameraPawn2D::HandleZoom);
             UE_LOG(LogTemp, Warning, TEXT("ActionZoom bound successfully"));
         }
         
         // Bind Right Mouse Button for panning
-        if (InputConfig->ActionRightMouseClick)
+        if (InputConfig->m_MouseRightButtonAction)
         {
             //EIC->BindAction(InputConfig->ActionRightMouseClick, ETriggerEvent::Started, this, &ACameraPawn2D::HandleRightMousePressed);
             //EIC->BindAction(InputConfig->ActionRightMouseClick, ETriggerEvent::Completed, this, &ACameraPawn2D::HandleRightMouseReleased);
             //UE_LOG(LogTemp, Warning, TEXT("ActionRightMouseClick bound successfully"));
-
-            //EIC->BindAction(InputConfig->ActionRightMouseClick, ETriggerEvent::Triggered, this, &ACameraPawn2D::HandleMouseMove);
+            //EIC->BindAction(InputConfig->ActionRightMouseClick, ETriggerEvent::Triggered, this, &ACameraPawn2D::HandleCameraPan);
         }
         
         // Bind Mouse Movement for panning
-        if (InputConfig->ActionMouseMove)
+        if (InputConfig->m_MouseActionMove)
         {
-            EIC->BindAction(InputConfig->ActionMouseMove, ETriggerEvent::Triggered, this, &ACameraPawn2D::HandleMouseMove);
+            EIC->BindAction(InputConfig->m_MouseActionMove, ETriggerEvent::Triggered, this, &ACameraPawn2D::HandleCameraPan);
             UE_LOG(LogTemp, Warning, TEXT("ActionMouseMove bound successfully"));
         }
     }
@@ -200,55 +200,65 @@ void ACameraPawn2D::HandleClick()
 
 }
 
-void ACameraPawn2D::HandleRightMousePressed()
-{
-    bIsPanning = true;
-    LastMousePosition = GetMousePosition();
-    UE_LOG(LogTemp, Warning, TEXT(">>> RMB PRESSED - bIsPanning=true, Pos=(%f,%f)"), LastMousePosition.X, LastMousePosition.Y);
-}
+//void ACameraPawn2D::HandleRightMousePressed()
+//{
+//    //bIsPanning = true;
+//    LastMousePosition = GetMousePosition();
+//    UE_LOG(LogTemp, Warning, TEXT(">>> RMB PRESSED - bIsPanning=true, Pos=(%f,%f)"), LastMousePosition.X, LastMousePosition.Y);
+//}
+//
+//void ACameraPawn2D::HandleRightMouseReleased()
+//{
+//    //bIsPanning = false;
+//    UE_LOG(LogTemp, Warning, TEXT(">>> RMB RELEASED - bIsPanning=false"));
+//}
 
-void ACameraPawn2D::HandleRightMouseReleased()
+void ACameraPawn2D::HandleCameraPan(const FInputActionValue& Value)
 {
-    bIsPanning = false;
-    UE_LOG(LogTemp, Warning, TEXT(">>> RMB RELEASED - bIsPanning=false"));
-}
+    //FVector2D Delta = Value.Get<FVector2D>();
+    //UE_LOG(LogTemp, Warning, TEXT("[HandleCameraPan] Delta=(%f,%f)"), Delta.X, Delta.Y);
 
-void ACameraPawn2D::HandleMouseMove(const FInputActionValue& Value)
-{
+    //if (!Delta.IsNearlyZero())
+    //{
+    //    FVector CurrentLocation = GetActorLocation();
+    //    CurrentLocation.X -= Delta.X * PanSpeed;
+    //    CurrentLocation.Y += Delta.Y * PanSpeed;
+    //    SetActorLocation(CurrentLocation);
+    //    UE_LOG(LogTemp, Warning, TEXT("[HandleCameraPan] Moved to: %s"), *CurrentLocation.ToString());
+    //}
+
     FVector2D Delta = Value.Get<FVector2D>();
-    UE_LOG(LogTemp, Warning, TEXT("[HandleMouseMove] Delta=(%f,%f)"), Delta.X, Delta.Y);
 
-    if (!Delta.IsNearlyZero())
-    {
-        FVector CurrentLocation = GetActorLocation();
-        CurrentLocation.X -= Delta.X * PanSpeed;
-        CurrentLocation.Y += Delta.Y * PanSpeed;
-        SetActorLocation(CurrentLocation);
-        UE_LOG(LogTemp, Warning, TEXT("[HandleMouseMove] Moved to: %s"), *CurrentLocation.ToString());
-    }
+    if (Delta.IsNearlyZero()) return;
+
+    FVector Loc = GetActorLocation();
+    Loc.X -= Delta.X * PanSpeed ;
+    Loc.Y += Delta.Y * PanSpeed ;
+
+    SetActorLocation(Loc);
 }
 
 void ACameraPawn2D::Tick(float DeltaTime)
 {
-    Super::Tick(DeltaTime);
+    //Super::Tick(DeltaTime);
 
-    if (bIsPanning)
-    {
-        FVector2D CurrentMousePos = GetMousePosition();
-        FVector2D Delta = CurrentMousePos - LastMousePosition;
-        LastMousePosition = CurrentMousePos;
+    //if (bIsPanning)
+    //{
+    //    FVector2D CurrentMousePos = GetMousePosition();
+    //    FVector2D Delta = CurrentMousePos - LastMousePosition;
+    //    LastMousePosition = CurrentMousePos;
 
-        UE_LOG(LogTemp, Warning, TEXT("[Tick Panning] Delta=(%f,%f)"), Delta.X, Delta.Y);
+    //    UE_LOG(LogTemp, Warning, TEXT("[Tick Panning] Delta=(%f,%f)"), Delta.X, Delta.Y);
 
-        if (!Delta.IsNearlyZero())
-        {
-            FVector CurrentLocation = GetActorLocation();
-            CurrentLocation.X -= Delta.X * PanSpeed;
-            CurrentLocation.Y += Delta.Y * PanSpeed;
-            SetActorLocation(CurrentLocation);
-            UE_LOG(LogTemp, Warning, TEXT("[Tick Panning] Moved to: %s"), *CurrentLocation.ToString());
-        }
-    }
+    //    if (!Delta.IsNearlyZero())
+    //    {
+    //        FVector CurrentLocation = GetActorLocation();
+    //        CurrentLocation.X -= Delta.X * PanSpeed;
+    //        CurrentLocation.Y += Delta.Y * PanSpeed;
+    //        SetActorLocation(CurrentLocation);
+    //        UE_LOG(LogTemp, Warning, TEXT("[Tick Panning] Moved to: %s"), *CurrentLocation.ToString());
+    //    }
+    //}
 }
 
 void ACameraPawn2D::HandleZoom(const FInputActionValue& Value)
