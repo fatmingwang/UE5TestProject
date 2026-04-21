@@ -119,15 +119,6 @@ void ACameraPawn2D::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
             UE_LOG(LogTemp, Warning, TEXT("ActionZoom bound successfully"));
         }
         
-        // Bind Right Mouse Button for panning
-        if (InputConfig->m_MouseRightButtonAction)
-        {
-            //EIC->BindAction(InputConfig->ActionRightMouseClick, ETriggerEvent::Started, this, &ACameraPawn2D::HandleRightMousePressed);
-            //EIC->BindAction(InputConfig->ActionRightMouseClick, ETriggerEvent::Completed, this, &ACameraPawn2D::HandleRightMouseReleased);
-            //UE_LOG(LogTemp, Warning, TEXT("ActionRightMouseClick bound successfully"));
-            //EIC->BindAction(InputConfig->ActionRightMouseClick, ETriggerEvent::Triggered, this, &ACameraPawn2D::HandleCameraPan);
-        }
-        
         // Bind Mouse Movement for panning
         if (InputConfig->m_MouseActionMove)
         {
@@ -143,6 +134,7 @@ void ACameraPawn2D::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 
 FVector2D ACameraPawn2D::GetMovedVec(FVector2D e_MoveVec)
 {
+    if(0)
     if (m_bFlipXYIfXIsRotation90Degree)
     {
         FVector2D l_Original = e_MoveVec;
@@ -204,43 +196,31 @@ void ACameraPawn2D::HandleClick()
         // Add tag so it can be saved/loaded
         SpawnedActor->Tags.AddUnique(SAVEABLE_ACTOR_TAG);
 
+        // Enable physics on the root primitive component
+        if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(SpawnedActor->GetRootComponent()))
+        {
+            //PrimComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+            //PrimComp->SetSimulatePhysics(true);
+            //PrimComp->SetCollisionProfileName(TEXT("PhysicsActor")); // required for physics to simulate
+            //PrimComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+            //PrimComp->SetSimulatePhysics(true);
+
+            //PrimComp->SetConstraintMode(EDOFMode::XZPlane); // or YZPlane depending on your camera axis
+            //PrimComp->SetEnableGravity(false); // disable if you don't want falling
+        }
+
         // Log actor's position
         UE_LOG(LogTemp, Log, TEXT("Actor Position: %s"), *SpawnedActor->GetActorLocation().ToString());
 
         UE_LOG(LogTemp, Warning, TEXT("✅ Spawned: %s at %s"), 
             *SpawnedActor->GetName(), *SpawnPos.ToString());
-
     }
     
 
 }
 
-//void ACameraPawn2D::HandleRightMousePressed()
-//{
-//    //bIsPanning = true;
-//    LastMousePosition = GetMousePosition();
-//    UE_LOG(LogTemp, Warning, TEXT(">>> RMB PRESSED - bIsPanning=true, Pos=(%f,%f)"), LastMousePosition.X, LastMousePosition.Y);
-//}
-//
-//void ACameraPawn2D::HandleRightMouseReleased()
-//{
-//    //bIsPanning = false;
-//    UE_LOG(LogTemp, Warning, TEXT(">>> RMB RELEASED - bIsPanning=false"));
-//}
-
 void ACameraPawn2D::HandleCameraPan(const FInputActionValue& Value)
 {
-    //FVector2D Delta = Value.Get<FVector2D>();
-    //UE_LOG(LogTemp, Warning, TEXT("[HandleCameraPan] Delta=(%f,%f)"), Delta.X, Delta.Y);
-
-    //if (!Delta.IsNearlyZero())
-    //{
-    //    FVector CurrentLocation = GetActorLocation();
-    //    CurrentLocation.X -= Delta.X * PanSpeed;
-    //    CurrentLocation.Y += Delta.Y * PanSpeed;
-    //    SetActorLocation(CurrentLocation);
-    //    UE_LOG(LogTemp, Warning, TEXT("[HandleCameraPan] Moved to: %s"), *CurrentLocation.ToString());
-    //}
 
     FVector2D Delta = Value.Get<FVector2D>();
 
