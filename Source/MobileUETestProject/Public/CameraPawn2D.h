@@ -14,6 +14,8 @@ class MOBILEUETESTPROJECT_API ACameraPawn2D : public APawn
 protected:
     UPROPERTY(EditAnywhere, Category = "Input")
     UMyEditorInputConfig* InputConfig;
+    UPROPERTY(EditAnywhere, Category = "Input", meta = (DisplayName = "Use 2D XY(not XZ)"))
+    bool m_bUseXYNotXZ;
 
     UPROPERTY(EditAnywhere, Category = "Setup")
     TSubclassOf<AActor> PinClass; // The Actor to spawn

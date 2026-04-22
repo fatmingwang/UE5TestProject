@@ -8,6 +8,7 @@
 
 ACameraPawn2D::ACameraPawn2D()
 {
+    m_bUseXYNotXZ = false;
     PanSpeed = 50.f;
     PrimaryActorTick.bCanEverTick = true;
 
@@ -151,7 +152,15 @@ void ACameraPawn2D::HandleMoveByKeyboardWASD(const FInputActionValue& Value)
     MoveVec = GetMovedVec(MoveVec);
     //UE_LOG(LogTemp, Warning, TEXT("Move Vector: X=%f, Y=%f"), MoveVec.X, MoveVec.Y);
     // Move along XY plane (Z remains constant)
-    AddActorWorldOffset(FVector(MoveVec.Y * 20.f, -MoveVec.X * 20.f, 0.f));
+    if (m_bUseXYNotXZ)
+    {
+        AddActorWorldOffset(FVector(MoveVec.Y * 20.f, -MoveVec.X * 20.f, 0.f));
+    }
+    else
+    {
+        AddActorWorldOffset(FVector(MoveVec.Y * 20.f, 0.f, MoveVec.X * 20.f));
+    }
+    
 }
 
 void ACameraPawn2D::HandleClick()
@@ -183,7 +192,16 @@ void ACameraPawn2D::HandleClick()
     PC->DeprojectScreenPositionToWorld(MouseX, MouseY, WorldLocation, WorldDirection);
     
     FVector SpawnPos = WorldLocation;
-    SpawnPos.Z = 0.0f;
+    if (m_bUseXYNotXZ)
+    {
+        SpawnPos.Z = 250.0f;
+    }
+    else
+    {
+        SpawnPos.Y = 700.0f;
+    }
+    
+    
     
     // Spawn the actor
     AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(PinClass, SpawnPos, FRotator::ZeroRotator);
@@ -192,6 +210,14 @@ void ACameraPawn2D::HandleClick()
     {
         // Prevent spawned actor from capturing input
         SpawnedActor->DisableInput(PC);
+
+        // Add force to shoot the actor along +Y axis
+        if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(SpawnedActor->GetRootComponent()))
+        {
+            PrimComp->SetSimulatePhysics(true);
+            PrimComp->AddImpulse(FVector(0.f, 3000.f, 0.f), NAME_None, /*bVelChange=*/true);
+        }
+
 
         // Add tag so it can be saved/loaded
         SpawnedActor->Tags.AddUnique(SAVEABLE_ACTOR_TAG);
@@ -231,7 +257,15 @@ void ACameraPawn2D::HandleCameraPan(const FInputActionValue& Value)
     Delta = GetMovedVec(Delta);
     FVector Loc = GetActorLocation();
     Loc.X -= Delta.X * PanSpeed ;
-    Loc.Y += Delta.Y * PanSpeed ;
+    if (m_bUseXYNotXZ)
+    {
+        Loc.Y += Delta.Y * PanSpeed;
+    }
+    else
+    {
+        Loc.Z -= Delta.Y * PanSpeed;
+    }
+    
 
     SetActorLocation(Loc);
 }
