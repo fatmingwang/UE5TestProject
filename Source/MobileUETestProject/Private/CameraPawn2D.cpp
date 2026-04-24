@@ -166,7 +166,7 @@ void ACameraPawn2D::HandleMoveByKeyboardWASD(const FInputActionValue& Value)
 void ACameraPawn2D::HandleClick()
 {
     UE_LOG(LogTemp, Warning, TEXT(">>> HandleClick CALLED <<<"));
-    if (!PinClass)
+    if (!m_TargetPlaceActor)
     {
         UE_LOG(LogTemp, Error, TEXT("PinClass is NULL!"));
         return;
@@ -204,7 +204,7 @@ void ACameraPawn2D::HandleClick()
     
     
     // Spawn the actor
-    AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(PinClass, SpawnPos, FRotator::ZeroRotator);
+    AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(m_TargetPlaceActor, SpawnPos, FRotator::ZeroRotator);
 
     if (SpawnedActor)
     {
@@ -243,6 +243,16 @@ void ACameraPawn2D::HandleClick()
     }
     
 
+}
+
+void ACameraPawn2D::BP_SetTargetPlaceActor(TSubclassOf<AActor> NewActorClass)
+{
+    m_TargetPlaceActor = NewActorClass;
+}
+
+TSubclassOf<AActor> ACameraPawn2D::BP_GetTargetPlaceActor() const
+{
+    return m_TargetPlaceActor;
 }
 
 void ACameraPawn2D::HandleCameraPan(const FInputActionValue& Value)

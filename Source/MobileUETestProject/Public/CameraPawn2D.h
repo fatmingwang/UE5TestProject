@@ -17,11 +17,17 @@ protected:
     UPROPERTY(EditAnywhere, Category = "Input", meta = (DisplayName = "Use 2D XY(not XZ)"))
     bool m_bUseXYNotXZ;
 
-    UPROPERTY(EditAnywhere, Category = "Setup")
-    TSubclassOf<AActor> PinClass; // The Actor to spawn
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup", meta = (DisplayName = "Target Place Actor Class"))
+	TSubclassOf<AActor> m_TargetPlaceActor; // The Actor to spawn
 	bool m_bFlipXYIfXIsRotation90Degree ; // Whether to flip X and Y axes when rotation is 90 degrees
 public:
-    ACameraPawn2D();
+	ACameraPawn2D();
+
+	UFUNCTION(BlueprintCallable, Category = "Camera2D", meta = (DisplayName = "Set Target Place Actor Class"))
+	void BP_SetTargetPlaceActor(TSubclassOf<AActor> NewActorClass);
+
+	UFUNCTION(BlueprintPure, Category = "Camera2D", meta = (DisplayName = "Get Target Place Actor Class"))
+	TSubclassOf<AActor> BP_GetTargetPlaceActor() const;
 
 protected:
     virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
