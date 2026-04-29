@@ -17,6 +17,8 @@ ACameraPawn2D::ACameraPawn2D()
     CameraComponent->SetProjectionMode(ECameraProjectionMode::Orthographic);
     CameraComponent->SetOrthoWidth(2048.f);
     m_bFlipXYIfXIsRotation90Degree = false;
+    DraggedActor = nullptr;
+    DragOffset = FVector::ZeroVector;
 }
 
 void ACameraPawn2D::SetPlayerControllerMouseBehivor()
@@ -111,6 +113,7 @@ void ACameraPawn2D::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
         if (InputConfig->m_MouseLeftButtonActionMove)
         {
             EIC->BindAction(InputConfig->m_MouseLeftButtonActionMove, ETriggerEvent::Started, this, &ACameraPawn2D::HandleClick);
+            EIC->BindAction(InputConfig->m_MouseLeftButtonActionMove, ETriggerEvent::Completed, this, &ACameraPawn2D::HandleClickReleased);
             UE_LOG(LogTemp, Warning, TEXT("ActionClick bound successfully"));
         }
         
@@ -163,43 +166,82 @@ void ACameraPawn2D::HandleMoveByKeyboardWASD(const FInputActionValue& Value)
     
 }
 
+void ACameraPawn2D::GetActorPlaneDepth(FVector& e_Input) const
+{
+    // XY mode: depth is on Z axis; XZ mode: depth is on Y axis
+    if (m_bUseXYNotXZ)
+        e_Input.Z = m_ActorPlaneDepthXY;
+    else
+        e_Input.Y = m_ActorPlaneDepthXZ;
+}
+
 void ACameraPawn2D::HandleClick()
 {
     UE_LOG(LogTemp, Warning, TEXT(">>> HandleClick CALLED <<<"));
+
+    APlayerController* PC = Cast<APlayerController>(GetController());
+    if (!PC)
+        return;
+
+    float MouseX, MouseY;
+    if (!PC->GetMousePosition(MouseX, MouseY))
+        return;
+
+    FVector WorldLocation, WorldDirection;
+    PC->DeprojectScreenPositionToWorld(MouseX, MouseY, WorldLocation, WorldDirection);
+
+    // First: check if an existing actor is under the cursor
+    FHitResult HitResult;
+    FVector TraceEnd = WorldLocation + WorldDirection * 100000.f;
+    FCollisionQueryParams Params;
+    Params.AddIgnoredActor(this);
+    if (GetWorld()->LineTraceSingleByChannel(HitResult, WorldLocation, TraceEnd, ECC_Visibility, Params))
+    {
+        AActor* HitActor = HitResult.GetActor();
+        if (HitActor && HitActor != this)
+        {
+            // Only allow dragging if the hit actor is the same type as m_TargetPlaceActor
+            if (m_TargetPlaceActor && HitActor->IsA(m_TargetPlaceActor))
+            {
+                DraggedActor = HitActor;
+                // Use the hit component directly; if it is a non-primitive DefaultSceneRoot,
+                // fall back to the first UPrimitiveComponent child on the actor
+                UPrimitiveComponent* TargetComp = Cast<UPrimitiveComponent>(HitResult.GetComponent());
+                if (!TargetComp)
+                {
+                    TArray<UPrimitiveComponent*> PrimComps;
+                    HitActor->GetComponents<UPrimitiveComponent>(PrimComps);
+                    TargetComp = PrimComps.Num() > 0 ? PrimComps[0] : nullptr;
+                    UE_LOG(LogTemp, Warning, TEXT("CameraPawn2D: HitComponent is not primitive, using child: %s"),
+                        TargetComp ? *TargetComp->GetName() : TEXT("none"));
+                }
+                // Use component world position (not actor origin) for correct offset
+                // when root is DefaultSceneRoot and the visual mesh is a child component
+                FVector ClickPlanePos = WorldLocation;
+                GetActorPlaneDepth(ClickPlanePos);
+                FVector ComponentPos = TargetComp ? TargetComp->GetComponentLocation() : DraggedActor->GetActorLocation();
+                DragOffset = ComponentPos - ClickPlanePos;
+                DraggedActorOriginalState.Capture(TargetComp);
+                UE_LOG(LogTemp, Log, TEXT("CameraPawn2D: Grabbed %s (matches TargetPlaceActor type)"), *DraggedActor->GetName());
+                return; // dragging — do not spawn
+            }
+            else
+            {
+                // Hit actor is a different type — ignore it and fall through to spawn
+                UE_LOG(LogTemp, Log, TEXT("CameraPawn2D: Clicked %s but type does not match TargetPlaceActor, spawning instead"), *HitActor->GetName());
+            }
+        }
+    }
+
+    // No actor hit — spawn a new one
     if (!m_TargetPlaceActor)
     {
         UE_LOG(LogTemp, Error, TEXT("PinClass is NULL!"));
         return;
     }
     
-    APlayerController* PC = Cast<APlayerController>(GetController());
-    if (!PC)
-    {
-        UE_LOG(LogTemp, Error, TEXT("PlayerController is NULL!"));
-        return;
-    }
-    
-    // Get mouse position
-    float MouseX, MouseY;
-    if (!PC->GetMousePosition(MouseX, MouseY))
-    {
-        UE_LOG(LogTemp, Error, TEXT("Failed to get mouse position!"));
-        return;
-    }
-    
-    // Deproject to world
-    FVector WorldLocation, WorldDirection;
-    PC->DeprojectScreenPositionToWorld(MouseX, MouseY, WorldLocation, WorldDirection);
-    
     FVector SpawnPos = WorldLocation;
-    if (m_bUseXYNotXZ)
-    {
-        SpawnPos.Z = 250.0f;
-    }
-    else
-    {
-        SpawnPos.Y = 700.0f;
-    }
+    GetActorPlaneDepth(SpawnPos);
     
     
     
@@ -280,27 +322,46 @@ void ACameraPawn2D::HandleCameraPan(const FInputActionValue& Value)
     SetActorLocation(Loc);
 }
 
+void ACameraPawn2D::HandleClickReleased()
+{
+    if (DraggedActor)
+    {
+        // Restore the exact original state saved at grab time
+        DraggedActorOriginalState.Restore();
+        UE_LOG(LogTemp, Log, TEXT("CameraPawn2D: Released %s"), *DraggedActor->GetName());
+        DraggedActor = nullptr;
+    }
+}
+
 void ACameraPawn2D::Tick(float DeltaTime)
 {
-    //Super::Tick(DeltaTime);
+    // Move dragged actor with the mouse cursor
+    if (DraggedActor)
+    {
+        APlayerController* PC = Cast<APlayerController>(GetController());
+        if (!PC)
+        {
+            UE_LOG(LogTemp, Error, TEXT("CameraPawn2D::Tick — DraggedActor set but PlayerController is null"));
+            return;
+        }
 
-    //if (bIsPanning)
-    //{
-    //    FVector2D CurrentMousePos = GetMousePosition();
-    //    FVector2D Delta = CurrentMousePos - LastMousePosition;
-    //    LastMousePosition = CurrentMousePos;
+        float MouseX, MouseY;
+        if (!PC->GetMousePosition(MouseX, MouseY))
+        {
+            UE_LOG(LogTemp, Warning, TEXT("CameraPawn2D::Tick — GetMousePosition failed"));
+            return;
+        }
 
-    //    UE_LOG(LogTemp, Warning, TEXT("[Tick Panning] Delta=(%f,%f)"), Delta.X, Delta.Y);
+        FVector WorldLocation, WorldDirection;
+        PC->DeprojectScreenPositionToWorld(MouseX, MouseY, WorldLocation, WorldDirection);
 
-    //    if (!Delta.IsNearlyZero())
-    //    {
-    //        FVector CurrentLocation = GetActorLocation();
-    //        CurrentLocation.X -= Delta.X * PanSpeed;
-    //        CurrentLocation.Y += Delta.Y * PanSpeed;
-    //        SetActorLocation(CurrentLocation);
-    //        UE_LOG(LogTemp, Warning, TEXT("[Tick Panning] Moved to: %s"), *CurrentLocation.ToString());
-    //    }
-    //}
+        FVector NewLocation = WorldLocation;
+        GetActorPlaneDepth(NewLocation);
+        FVector FinalLocation = NewLocation + DragOffset;
+
+        // Move the exact captured component directly - works for any root hierarchy
+        DraggedActorOriginalState.SetPosition(FinalLocation);
+    }
 }
 
 void ACameraPawn2D::HandleZoom(const FInputActionValue& Value)

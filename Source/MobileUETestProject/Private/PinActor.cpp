@@ -10,6 +10,7 @@ APinActor::APinActor()
 
     PinMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PinMesh"));
     RootComponent = PinMesh;
+    PinMesh->SetMobility(EComponentMobility::Static);
     PinMesh->SetSimulatePhysics(false); // Pin is static by default
     PinMesh->SetNotifyRigidBodyCollision(true); // Enables OnComponentHit
 
@@ -47,18 +48,18 @@ void APinActor::OnPinHit(
         FVector IncomingVelocity = OtherComp->GetPhysicsLinearVelocity();
         FVector SurfaceNormal = Hit.ImpactNormal.GetSafeNormal();
 
-        // Reflect the incoming Ball velocity around the collision normal
-        FVector ReflectedVector = FVector::VectorPlaneProject(IncomingVelocity, SurfaceNormal) - FVector::DotProduct(IncomingVelocity, SurfaceNormal) * SurfaceNormal;
-        ReflectedVector = IncomingVelocity.MirrorByVector(SurfaceNormal);
+        // Reflect velocity direction around the hit surface normal
+        FVector ReflectedDirection = IncomingVelocity.MirrorByVector(SurfaceNormal).GetSafeNormal();
 
-        // Scale by the ReflectionForceMultiplier (higher means 'gibber' bounce)
-        FVector Impulse = ReflectedVector * ReflectionForceMultiplier;
+        // Preserve the incoming speed and boost it by the multiplier for an arcade feel
+        float IncomingSpeed = IncomingVelocity.Size();
+        FVector NewVelocity = ReflectedDirection * IncomingSpeed * ReflectionForceMultiplier;
 
-        // Apply the impulse; use VelocityChange to ignore object mass for more arcade feeling
-        OtherComp->AddImpulse(Impulse, NAME_None, true);
+        // Override the ball's velocity directly so it bounces cleanly without stacking forces
+        OtherComp->SetPhysicsLinearVelocity(NewVelocity);
 
 #if !UE_BUILD_SHIPPING
-        UE_LOG(LogTemp, Log, TEXT("Pin: Applied reflection force %s to %s"), *Impulse.ToString(), *OtherActor->GetName());
+        //UE_LOG(LogTemp, Log, TEXT("Pin: Bounced %s | Incoming speed: %.1f | New velocity: %s"), *OtherActor->GetName(), IncomingSpeed, *NewVelocity.ToString());
 #endif
     }
 }

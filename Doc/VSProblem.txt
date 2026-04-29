@@ -8,3 +8,7 @@ C:\Users\leeyo\AppData\Roaming\Unreal Engine\UnrealBuildTool
 
 
 or just regenerate VS solution by ue project agagin...
+
+
+
+delete binary folder if project cannt rebuild

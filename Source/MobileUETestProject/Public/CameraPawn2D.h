@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "InputActionValue.h"
 #include "MyEditorInputConfig.h"
+#include "DragActorState.h"
 #include "CameraPawn2D.generated.h"
 
 UCLASS()
@@ -36,13 +37,23 @@ protected:
     virtual void Tick(float DeltaTime) override;
     void HandleMoveByKeyboardWASD(const FInputActionValue& Value);
     void HandleClick();
+    void HandleClickReleased();
     void HandleZoom(const FInputActionValue& Value);
     void SetPlayerControllerMouseBehivor();
     FVector2D GetMovedVec(FVector2D e_MoveVec);
+    // Sets the fixed depth on the correct axis of e_Input based on camera mode
+    void GetActorPlaneDepth(FVector& e_Input) const;
 
 private:
     UPROPERTY(VisibleAnywhere)
     UCameraComponent* CameraComponent;
+
+    // The actor currently being dragged; nullptr when nothing is selected
+    AActor* DraggedActor;
+    // Saved original state of DraggedActor's root component before drag
+    FDragActorState DraggedActorOriginalState;
+    // World-space offset from actor origin to mouse hit point at grab time
+    FVector DragOffset;
 
     //bool bIsPanning = false;
     FVector2D LastMousePosition;
@@ -58,6 +69,13 @@ private:
 
     UPROPERTY(EditAnywhere)
     float MaxOrthoWidth = 4096.0f;
+
+    // Fixed depth on the non-movement axis where actors are placed/dragged
+    UPROPERTY(EditAnywhere, Category = "Setup", meta = (DisplayName = "Actor Plane Depth (XY mode Z)"))
+    float m_ActorPlaneDepthXY = 250.0f;
+
+    UPROPERTY(EditAnywhere, Category = "Setup", meta = (DisplayName = "Actor Plane Depth (XZ mode Y)"))
+    float m_ActorPlaneDepthXZ = 700.0f;
 
     // Input handlers
     //void HandleRightMousePressed();
