@@ -21,6 +21,20 @@ public:
 	// The force multiplier applied to the reflection impulse
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Physics", meta = (DisplayName = "Reflection Force Multiplier"))
 	float ReflectionForceMultiplier;
+
+	// Maximum random deviation (degrees) applied to the reflected direction to make bounces less perfect
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Physics", meta = (DisplayName = "Random Bounce Angle (Deg)"))
+	float RandomBounceAngleDegrees = 6.0f;
+
+	static float m_fGlobalReflectionForceMultiplier;
+
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta = (DisplayName = "Get Global Reflection Force Multiplier"))
+	static float GetGlobalReflectionForceMultiplier();
+
+	UFUNCTION(BlueprintCallable,  Category = "Physics", meta = (DisplayName = "Set Global Reflection Force Multiplier"))
+	static void SetGlobalReflectionForceMultiplier(float NewValue);
+
+
 	// Sets default values for this actor's properties
 	APinActor();
 

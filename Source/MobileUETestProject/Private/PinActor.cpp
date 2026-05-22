@@ -2,11 +2,20 @@
 
 
 #include "PinActor.h"
-
+float APinActor::m_fGlobalReflectionForceMultiplier = 1.0f; // Default value
+float APinActor::GetGlobalReflectionForceMultiplier()
+{
+    return APinActor::m_fGlobalReflectionForceMultiplier;
+}
+void APinActor::SetGlobalReflectionForceMultiplier(float NewValue)
+{
+	APinActor::m_fGlobalReflectionForceMultiplier = NewValue;
+}
 // Sets default values
 APinActor::APinActor()
 {
     PrimaryActorTick.bCanEverTick = false;
+    RandomBounceAngleDegrees = 0.6;
 
     PinMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PinMesh"));
     RootComponent = PinMesh;
@@ -53,7 +62,19 @@ void APinActor::OnPinHit(
 
         // Preserve the incoming speed and boost it by the multiplier for an arcade feel
         float IncomingSpeed = IncomingVelocity.Size();
-        FVector NewVelocity = ReflectedDirection * IncomingSpeed * ReflectionForceMultiplier;
+        // Apply a small random deviation to the reflected direction to make bounces feel more natural.
+          // RandomBounceAngleDegrees is editable in the editor.
+        float MaxRandomAngleRad = FMath::DegreesToRadians(RandomBounceAngleDegrees);
+        FVector PerturbedDirection = FMath::VRandCone(ReflectedDirection, MaxRandomAngleRad);
+        //PerturbedDirection.Y = 0;
+        if (PerturbedDirection.Z > 0)
+        {
+            PerturbedDirection *= -1;
+        }
+        PerturbedDirection = ReflectedDirection + PerturbedDirection;
+
+        FVector NewVelocity = PerturbedDirection * IncomingSpeed * ReflectionForceMultiplier * m_fGlobalReflectionForceMultiplier;
+
 
         // Override the ball's velocity directly so it bounces cleanly without stacking forces
         OtherComp->SetPhysicsLinearVelocity(NewVelocity);

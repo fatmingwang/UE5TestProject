@@ -9,6 +9,8 @@
 ACameraPawn2D::ACameraPawn2D()
 {
     m_bUseXYNotXZ = false;
+    //if m_bUseXYNotXZ true lock Z
+    //if m_bUseXYNotXZ false lock Y
     PanSpeed = 50.f;
     PrimaryActorTick.bCanEverTick = true;
 
@@ -181,11 +183,15 @@ void ACameraPawn2D::HandleClick()
 
     APlayerController* PC = Cast<APlayerController>(GetController());
     if (!PC)
+    {
         return;
+    }
 
     float MouseX, MouseY;
     if (!PC->GetMousePosition(MouseX, MouseY))
+    {
         return;
+    }
 
     FVector WorldLocation, WorldDirection;
     PC->DeprojectScreenPositionToWorld(MouseX, MouseY, WorldLocation, WorldDirection);
@@ -277,6 +283,9 @@ void ACameraPawn2D::HandleClick()
             //PrimComp->SetEnableGravity(false); // disable if you don't want falling
         }
 
+        // Lock actor physics behavior based on camera mode
+        LockActorPhysicsBehavior(SpawnedActor);
+
         // Log actor's position
         UE_LOG(LogTemp, Log, TEXT("Actor Position: %s"), *SpawnedActor->GetActorLocation().ToString());
 
@@ -295,6 +304,75 @@ void ACameraPawn2D::BP_SetTargetPlaceActor(TSubclassOf<AActor> NewActorClass)
 TSubclassOf<AActor> ACameraPawn2D::BP_GetTargetPlaceActor() const
 {
     return m_TargetPlaceActor;
+}
+
+float ACameraPawn2D::BP_GetPinReflectionForceMultiplier() const
+{
+    if (APinActor* Pin = Cast<APinActor>(DraggedActor))
+    {
+        return Pin->ReflectionForceMultiplier;
+    }
+
+    return -1.f;
+}
+
+void ACameraPawn2D::BP_SetPinReflectionForceMultiplier(float NewValue)
+{
+    if (APinActor* Pin = Cast<APinActor>(DraggedActor))
+    {
+        Pin->ReflectionForceMultiplier = NewValue;
+    }
+}
+
+void ACameraPawn2D::LockActorPhysicsBehavior(AActor* TargetActor)
+{
+    if (!TargetActor)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("LockActorPhysicsBehavior: TargetActor is NULL"));
+        return;
+    }
+
+    // Get the primitive component from the actor
+    UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(TargetActor->GetRootComponent());
+
+    // If root component is not primitive, find the first primitive component
+    if (!PrimComp)
+    {
+        TArray<UPrimitiveComponent*> PrimComps;
+        TargetActor->GetComponents<UPrimitiveComponent>(PrimComps);
+        PrimComp = PrimComps.Num() > 0 ? PrimComps[0] : nullptr;
+
+        if (!PrimComp)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("LockActorPhysicsBehavior: %s has no primitive component"), *TargetActor->GetName());
+            return;
+        }
+        UE_LOG(LogTemp, Log, TEXT("LockActorPhysicsBehavior: Using child primitive component: %s"), *PrimComp->GetName());
+    }
+
+    // Lock movement based on camera mode
+    if (m_bUseXYNotXZ)
+    {
+        // XY mode: lock Z translation
+        PrimComp->BodyInstance.bLockZTranslation = true;
+        UE_LOG(LogTemp, Log, TEXT("LockActorPhysicsBehavior: Locked Z translation on %s (XY mode)"), *TargetActor->GetName());
+    }
+    else
+    {
+        // XZ mode: lock Y translation
+        PrimComp->BodyInstance.bLockYTranslation = true;
+        UE_LOG(LogTemp, Log, TEXT("LockActorPhysicsBehavior: Locked Y translation on %s (XZ mode)"), *TargetActor->GetName());
+    }
+
+    // Lock rotations to keep the object upright
+    PrimComp->BodyInstance.bLockXRotation = true;
+    PrimComp->BodyInstance.bLockYRotation = true;
+
+    // Recreate the physics state to apply changes
+    if (PrimComp->IsSimulatingPhysics())
+    {
+        PrimComp->RecreatePhysicsState();
+    }
 }
 
 void ACameraPawn2D::HandleCameraPan(const FInputActionValue& Value)

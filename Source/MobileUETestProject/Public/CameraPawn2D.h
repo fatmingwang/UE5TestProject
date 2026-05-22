@@ -6,6 +6,7 @@
 #include "InputActionValue.h"
 #include "MyEditorInputConfig.h"
 #include "DragActorState.h"
+#include "PinActor.h"
 #include "CameraPawn2D.generated.h"
 
 UCLASS()
@@ -29,6 +30,18 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Camera2D", meta = (DisplayName = "Get Target Place Actor Class"))
 	TSubclassOf<AActor> BP_GetTargetPlaceActor() const;
+
+	// Returns ReflectionForceMultiplier if DraggedActor is APinActor, otherwise -1
+	UFUNCTION(BlueprintPure, Category = "Camera2D|Pin", meta = (DisplayName = "Get Pin Reflection Force Multiplier"))
+	float BP_GetPinReflectionForceMultiplier() const;
+
+	// Sets ReflectionForceMultiplier on DraggedActor if it is APinActor
+	UFUNCTION(BlueprintCallable, Category = "Camera2D|Pin", meta = (DisplayName = "Set Pin Reflection Force Multiplier"))
+	void BP_SetPinReflectionForceMultiplier(float NewValue);
+
+	// Locks actor physics behavior based on camera mode (XY or XZ plane)
+	UFUNCTION(BlueprintCallable, Category = "Camera2D|Physics", meta = (DisplayName = "Lock Actor Physics Behavior"))
+	void LockActorPhysicsBehavior(AActor* TargetActor);
 
 protected:
     virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
