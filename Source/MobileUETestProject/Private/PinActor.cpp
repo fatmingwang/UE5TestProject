@@ -2,7 +2,7 @@
 
 
 #include "PinActor.h"
-float APinActor::m_fGlobalReflectionForceMultiplier = 1.0f; // Default value
+float APinActor::m_fGlobalReflectionForceMultiplier = 0.2f; // Default value
 float APinActor::GetGlobalReflectionForceMultiplier()
 {
     return APinActor::m_fGlobalReflectionForceMultiplier;
@@ -15,7 +15,7 @@ void APinActor::SetGlobalReflectionForceMultiplier(float NewValue)
 APinActor::APinActor()
 {
     PrimaryActorTick.bCanEverTick = false;
-    RandomBounceAngleDegrees = 0.6;
+    RandomBounceAngleDegrees = 20.0f;
 
     PinMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PinMesh"));
     RootComponent = PinMesh;
@@ -52,35 +52,37 @@ void APinActor::OnPinHit(
     const FHitResult& Hit
 )
 {
-    if (OtherActor && OtherActor != this && OtherComp && OtherComp->IsSimulatingPhysics())
-    {
-        FVector IncomingVelocity = OtherComp->GetPhysicsLinearVelocity();
-        FVector SurfaceNormal = Hit.ImpactNormal.GetSafeNormal();
+    if (!OtherActor || OtherActor == this || !OtherComp || !OtherComp->IsSimulatingPhysics())
+        return;
 
-        // Reflect velocity direction around the hit surface normal
-        FVector ReflectedDirection = IncomingVelocity.MirrorByVector(SurfaceNormal).GetSafeNormal();
+    // Suppress rapid re-hits from the same ball while it's still overlapping the pin
+    float Now = GetWorld()->GetTimeSeconds();
+    TWeakObjectPtr<AActor> Key(OtherActor);
+    float* LastTime = LastHitTimes.Find(Key);
+    if (LastTime && (Now - *LastTime) < HitCooldownSeconds)
+        return;
+    LastHitTimes.Add(Key, Now);
 
-        // Preserve the incoming speed and boost it by the multiplier for an arcade feel
-        float IncomingSpeed = IncomingVelocity.Size();
-        // Apply a small random deviation to the reflected direction to make bounces feel more natural.
-          // RandomBounceAngleDegrees is editable in the editor.
-        float MaxRandomAngleRad = FMath::DegreesToRadians(RandomBounceAngleDegrees);
-        FVector PerturbedDirection = FMath::VRandCone(ReflectedDirection, MaxRandomAngleRad);
-        //PerturbedDirection.Y = 0;
-        if (PerturbedDirection.Z > 0)
-        {
-            PerturbedDirection *= -1;
-        }
-        PerturbedDirection = ReflectedDirection + PerturbedDirection;
+    FVector IncomingVelocity = OtherComp->GetPhysicsLinearVelocity();
+    float IncomingSpeed = IncomingVelocity.Size();
 
-        FVector NewVelocity = PerturbedDirection * IncomingSpeed * ReflectionForceMultiplier * m_fGlobalReflectionForceMultiplier;
+    // ImpactNormal points radially outward from the pin surface — the natural exit direction for a round pin.
+    // Blending toward reflection (RadialReflectBlend=1) makes it mirror-like; toward 0 is pure arcade pinball.
+    FVector RadialDir = Hit.ImpactNormal.GetSafeNormal();
+    FVector ReflectedDir = IncomingVelocity.MirrorByVector(RadialDir).GetSafeNormal();
+    FVector BlendedDir = FMath::Lerp(RadialDir, ReflectedDir, RadialReflectBlend).GetSafeNormal();
 
+    // Rotate BlendedDir by a random angle in the XZ plane (around Y axis).
+    // This gives true 2D spread without needing to zero Y afterward.
+    float RandomAngleDeg = FMath::RandRange(-RandomBounceAngleDegrees, RandomBounceAngleDegrees);
+    FVector ExitDir = BlendedDir.RotateAngleAxis(RandomAngleDeg, FVector::YAxisVector).GetSafeNormal();
 
-        // Override the ball's velocity directly so it bounces cleanly without stacking forces
-        OtherComp->SetPhysicsLinearVelocity(NewVelocity);
+    // Enforce a minimum exit speed so the ball never dies against a pin
+    float ExitSpeed = FMath::Max(IncomingSpeed, MinExitSpeed) * ReflectionForceMultiplier * m_fGlobalReflectionForceMultiplier;
+
+    OtherComp->SetPhysicsLinearVelocity(ExitDir * ExitSpeed);
 
 #if !UE_BUILD_SHIPPING
-        //UE_LOG(LogTemp, Log, TEXT("Pin: Bounced %s | Incoming speed: %.1f | New velocity: %s"), *OtherActor->GetName(), IncomingSpeed, *NewVelocity.ToString());
+    UE_LOG(LogTemp, Log, TEXT("Pin: Bounced %s | InSpeed: %.1f | ExitSpeed: %.1f | ExitDir: %s"), *OtherActor->GetName(), IncomingSpeed, ExitSpeed, *ExitDir.ToString());
 #endif
-    }
 }
