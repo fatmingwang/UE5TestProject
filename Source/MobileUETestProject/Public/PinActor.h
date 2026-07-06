@@ -7,6 +7,8 @@
 #include "Components/StaticMeshComponent.h"
 #include "PinActor.generated.h"
 
+class USoundBase;
+
 
 UCLASS()
 class MOBILEUETESTPROJECT_API APinActor : public AActor
@@ -70,4 +72,9 @@ public:
 private:
 	// Per-ball last-hit timestamp to suppress rapid re-hit during wedge/overlap
 	TMap<TWeakObjectPtr<AActor>, float> LastHitTimes;
+
+public:
+	// Sound to play when a ball collides with the pin
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio", meta = (DisplayName = "Hit Sound"))
+	USoundBase* HitSound;
 };

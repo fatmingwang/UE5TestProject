@@ -2,6 +2,8 @@
 
 
 #include "PinActor.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 float APinActor::m_fGlobalReflectionForceMultiplier = 0.2f; // Default value
 float APinActor::GetGlobalReflectionForceMultiplier()
 {
@@ -33,6 +35,14 @@ APinActor::APinActor()
 void APinActor::BeginPlay()
 {
 	Super::BeginPlay();
+    if (!HitSound)
+    {
+        USoundBase* Default = LoadObject<USoundBase>(nullptr, TEXT("/Game/Sound/auto_on"));
+        if (Default)
+        {
+            HitSound = Default;
+        }
+    }
 	
 }
 
@@ -81,6 +91,12 @@ void APinActor::OnPinHit(
     float ExitSpeed = FMath::Max(IncomingSpeed, MinExitSpeed) * ReflectionForceMultiplier * m_fGlobalReflectionForceMultiplier;
 
     OtherComp->SetPhysicsLinearVelocity(ExitDir * ExitSpeed);
+
+    // Play collision sound at impact point if assigned
+    if (HitSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, HitSound, Hit.ImpactPoint);
+    }
 
 #if !UE_BUILD_SHIPPING
     UE_LOG(LogTemp, Log, TEXT("Pin: Bounced %s | InSpeed: %.1f | ExitSpeed: %.1f | ExitDir: %s"), *OtherActor->GetName(), IncomingSpeed, ExitSpeed, *ExitDir.ToString());
