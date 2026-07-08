@@ -1,0 +1,43 @@
+https://www.youtube.com/watch?v=PqrKqhkj3gQ
+https://dev.epicgames.com/documentation/unreal-engine/unreal-mcp-in-unreal-editor
+
+
+now install claude
+https://code.claude.com/docs/en/quickstart
+curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del install.cmd
+make  environment variable path  add
+C:\Users\leeyo\.local\bin
+
+
+
+Editor->plugins
+Editor Toolset
+Terminal
+Unreal MCP
+
+
+
+
+
+
+Edit->Editor preference->GENERAL->Model Context Protocol
+change port to  8000(?) 
+and checked auto start?
+
+Edit->Editor preference->GENERAL->Terminal
+
+add 3 startup commands 
+
+1.set TERM-sterm-256color
+2.cd /d "D:\Work\UE5TestProject5_8"    
+  /d change drive to d
+3.claude
+
+
+
+reopen unreal 
+in the below command filed input
+ModelContextProtocol.GenerateClientConfig ClaudeCode
+
+
+.mcp.json will be generated
