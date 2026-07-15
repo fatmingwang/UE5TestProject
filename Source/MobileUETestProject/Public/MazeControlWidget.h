@@ -118,7 +118,7 @@ private:
 
 	// Layout helpers used by RebuildWidget() to construct the UI purely in code.
 	void AddTitle(UVerticalBox* Parent, const FString& Title);
-	USlider* AddLabeledSlider(UVerticalBox* Parent, UTextBlock*& OutLabel, FName WidgetName, const FString& LabelPrefix, float MinValue, float MaxValue);
+	USlider* AddLabeledSlider(UVerticalBox* Parent, TObjectPtr<UTextBlock>& OutLabel, FName WidgetName, const FString& LabelPrefix, float MinValue, float MaxValue);
 	UCheckBox* AddLabeledCheckBox(UVerticalBox* Parent, FName WidgetName, const FString& Label);
 	UButton* AddButton(UHorizontalBox* Parent, FName WidgetName, const FString& Label);
 };

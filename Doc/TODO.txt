@@ -1,0 +1,16 @@
+MAZE GENERATOR - TODO
+======================
+
+- Save/load a generated maze as data (JSON or binary), so mazes can be exported and
+  re-imported instead of only ever being regenerated from Width/Height/Seed.
+    - Serialize UWilsonMazeGenerator's grid: MazeWidth, MazeHeight, and each FMazeCell's
+      Walls bitmask (bInMaze isn't needed once generation is complete - every cell ends
+      up in the maze).
+    - Export: write to a user-chosen .json (or a compact binary format) file on disk.
+    - Import: read the file back and rebuild the Cells array directly (bypassing Wilson's
+      algorithm/RandomStream entirely), then have AMazeVisualizerActor rebuild its floor/
+      wall instances from the loaded grid.
+    - Decide where the load/save hooks live: likely new UWilsonMazeGenerator methods
+      (e.g. ExportToJson()/ImportFromJson(), or ExportToBytes()/ImportFromBytes()), plus
+      matching BlueprintCallable wrappers and buttons on both UMazeControlWidget (Play
+      mode) and UMazeEditorUtilityWidget (editor mode) to trigger them.

@@ -49,14 +49,21 @@ TSharedRef<SWidget> UMazeControlWidget::RebuildWidget()
 
 	FixedSeedCheckBox = AddLabeledCheckBox(MainBox, TEXT("FixedSeedCheckBox"), TEXT("Use Fixed Seed"));
 
-	UHorizontalBox* ButtonRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("ButtonRow"));
-	UVerticalBoxSlot* ButtonRowSlot = MainBox->AddChildToVerticalBox(ButtonRow);
-	ButtonRowSlot->SetPadding(FMargin(0.0f, 14.0f, 0.0f, 4.0f));
+	UHorizontalBox* ButtonRowTop = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("ButtonRowTop"));
+	UVerticalBoxSlot* ButtonRowTopSlot = MainBox->AddChildToVerticalBox(ButtonRowTop);
+	ButtonRowTopSlot->SetPadding(FMargin(0.0f, 14.0f, 0.0f, 4.0f));
+	ButtonRowTopSlot->SetHorizontalAlignment(HAlign_Fill);
 
-	PlayButton = AddButton(ButtonRow, TEXT("PlayButton"), TEXT("Play"));
-	PauseButton = AddButton(ButtonRow, TEXT("PauseButton"), TEXT("Pause"));
-	StopButton = AddButton(ButtonRow, TEXT("StopButton"), TEXT("Stop"));
-	RestartButton = AddButton(ButtonRow, TEXT("RestartButton"), TEXT("Restart"));
+	PlayButton = AddButton(ButtonRowTop, TEXT("PlayButton"), TEXT("Play"));
+	PauseButton = AddButton(ButtonRowTop, TEXT("PauseButton"), TEXT("Pause"));
+
+	UHorizontalBox* ButtonRowBottom = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("ButtonRowBottom"));
+	UVerticalBoxSlot* ButtonRowBottomSlot = MainBox->AddChildToVerticalBox(ButtonRowBottom);
+	ButtonRowBottomSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 4.0f));
+	ButtonRowBottomSlot->SetHorizontalAlignment(HAlign_Fill);
+
+	StopButton = AddButton(ButtonRowBottom, TEXT("StopButton"), TEXT("Stop"));
+	RestartButton = AddButton(ButtonRowBottom, TEXT("RestartButton"), TEXT("Restart"));
 
 	ProgressBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("ProgressBar"));
 	UVerticalBoxSlot* ProgressSlot = MainBox->AddChildToVerticalBox(ProgressBar);
@@ -85,12 +92,12 @@ void UMazeControlWidget::AddTitle(UVerticalBox* Parent, const FString& Title)
 	Font.Size = 20;
 	TitleText->SetFont(Font);
 
-	UVerticalBoxSlot* Slot = Parent->AddChildToVerticalBox(TitleText);
-	Slot->SetHorizontalAlignment(HAlign_Fill);
-	Slot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 10.0f));
+	UVerticalBoxSlot* TitleSlot = Parent->AddChildToVerticalBox(TitleText);
+	TitleSlot->SetHorizontalAlignment(HAlign_Fill);
+	TitleSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 10.0f));
 }
 
-USlider* UMazeControlWidget::AddLabeledSlider(UVerticalBox* Parent, UTextBlock*& OutLabel, FName WidgetName, const FString& LabelPrefix, float MinValue, float MaxValue)
+USlider* UMazeControlWidget::AddLabeledSlider(UVerticalBox* Parent, TObjectPtr<UTextBlock>& OutLabel, FName WidgetName, const FString& LabelPrefix, float MinValue, float MaxValue)
 {
 	UTextBlock* LabelText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), *(WidgetName.ToString() + TEXT("Label")));
 	LabelText->SetText(FText::FromString(LabelPrefix));
@@ -132,11 +139,18 @@ UButton* UMazeControlWidget::AddButton(UHorizontalBox* Parent, FName WidgetName,
 	UTextBlock* ButtonText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), *(WidgetName.ToString() + TEXT("Label")));
 	ButtonText->SetText(FText::FromString(Label));
 	ButtonText->SetJustification(ETextJustify::Center);
+
+	FSlateFontInfo ButtonFont = ButtonText->GetFont();
+	ButtonFont.Size = 12;
+	ButtonText->SetFont(ButtonFont);
+
 	Button->SetContent(ButtonText);
 
-	UHorizontalBoxSlot* Slot = Parent->AddChildToHorizontalBox(Button);
-	Slot->SetPadding(FMargin(0.0f, 0.0f, 4.0f, 0.0f));
-	Slot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	UHorizontalBoxSlot* ButtonSlot = Parent->AddChildToHorizontalBox(Button);
+	ButtonSlot->SetPadding(FMargin(0.0f, 0.0f, 6.0f, 0.0f));
+	ButtonSlot->SetHorizontalAlignment(HAlign_Fill);
+	ButtonSlot->SetVerticalAlignment(VAlign_Fill);
+	ButtonSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 
 	return Button;
 }

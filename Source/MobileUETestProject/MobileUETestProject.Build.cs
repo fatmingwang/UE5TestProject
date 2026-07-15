@@ -20,7 +20,17 @@ public class MobileUETestProject : ModuleRules
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
-		
+
+		if (Target.Type == TargetType.Editor)
+		{
+			// Editor-only: powers the in-editor maze parameter tool (UEditorUtilityWidget), which
+			// lets the maze be adjusted and regenerated without entering Play mode. NOTE: this makes
+			// MazeEditorUtilityWidget.h/.cpp compile only correctly for the Editor target - if the
+			// MobileUETestProject (Game) target is ever built, these two files need to move out into
+			// their own editor-only module first (that move needs an editor restart to register).
+			PrivateDependencyModuleNames.AddRange(new string[] { "UnrealEd", "Blutility", "UMGEditor" });
+		}
+
 		// Uncomment if you are using online features
 		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
 
