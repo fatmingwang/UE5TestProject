@@ -10,6 +10,9 @@
 class UInstancedStaticMeshComponent;
 class UStaticMesh;
 class UMazeControlWidget;
+class UMazeMinimapWidget;
+class USceneCaptureComponent2D;
+class UTextureRenderTarget2D;
 
 UENUM(BlueprintType)
 enum class EMazePlayState : uint8
@@ -88,6 +91,37 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Maze|UI")
 	TObjectPtr<UMazeControlWidget> ControlWidgetInstance;
 
+	// If set, an instance of this widget is created and added to the viewport on BeginPlay,
+	// pre-wired to this actor - drop this actor into a level, assign a WBP_ child of
+	// UMazeMinimapWidget here, and the minimap just works with no extra Blueprint wiring.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Maze|UI")
+	TSubclassOf<UMazeMinimapWidget> MinimapWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Maze|UI")
+	bool bAutoCreateMinimapWidget = true;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Maze|UI")
+	TObjectPtr<UMazeMinimapWidget> MinimapWidgetInstance;
+
+	// Top-down camera that renders the maze into MinimapRenderTarget. Framing (position/zoom) is
+	// driven every frame by UpdateMinimapView() - normally called from a UMazeMinimapWidget - so it
+	// can pan/zoom to follow a target; left alone, it defaults to a static full-maze view.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Maze|Components")
+	TObjectPtr<USceneCaptureComponent2D> MinimapCapture;
+
+	// Render target MinimapCapture renders into. Created and sized automatically to match the
+	// maze's aspect ratio; a UMazeMinimapWidget can display this directly in an Image widget.
+	UPROPERTY(BlueprintReadOnly, Category = "Maze|Minimap")
+	TObjectPtr<UTextureRenderTarget2D> MinimapRenderTarget;
+
+	// Height (uu) above the maze the top-down capture camera sits at.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Maze|Minimap", meta = (ClampMin = "1.0"))
+	float MinimapCaptureHeight = 3000.0f;
+
+	// Longest edge of MinimapRenderTarget, in pixels; the other edge follows the maze's aspect ratio.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Maze|Minimap", meta = (ClampMin = "8"))
+	int32 MinimapResolution = 512;
+
 	// Broadcast whenever Play/Pause/Stop/Restart/completion changes the playback state.
 	UPROPERTY(BlueprintAssignable, Category = "Maze|Events")
 	FOnMazePlayStateChanged OnPlayStateChanged;
@@ -126,6 +160,20 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Maze|Playback")
 	float GetGenerationProgress() const { return MazeGenerator ? MazeGenerator->GetGenerationProgress() : 0.0f; }
 
+	// Re-frames MinimapCapture: at Scale 1 the whole maze is visible (centered on the maze itself,
+	// regardless of FocusWorldLocation); as Scale shrinks toward 0 the view zooms in and centers on
+	// FocusWorldLocation instead (clamped so the view window doesn't hang off the edge of the maze
+	// when possible). Call this every frame with the tracked pawn's location to make the minimap
+	// pan/zoom to follow it - a UMazeMinimapWidget does this automatically.
+	UFUNCTION(BlueprintCallable, Category = "Maze|Minimap")
+	void UpdateMinimapView(const FVector& FocusWorldLocation, float Scale);
+
+	// Converts a world-space location into normalized [0,1] minimap UV space (top-left origin),
+	// matching whatever MinimapCapture is currently framing, so a widget can position a
+	// "you are here" icon over MinimapRenderTarget.
+	UFUNCTION(BlueprintPure, Category = "Maze|Minimap")
+	FVector2D WorldToMinimapUV(const FVector& WorldLocation) const;
+
 protected:
 	virtual void BeginPlay() override;
 	// Builds an instant preview in the editor viewport (outside PIE) so the actor doesn't sit
@@ -143,4 +191,8 @@ private:
 	void BuildFloorGrid();
 	// Walls are rebuilt every step so standing walls visibly fall away as corridors are carved.
 	void RebuildWalls();
+
+	// (Re)creates/resizes MinimapRenderTarget to match the maze's current aspect ratio and resets
+	// MinimapCapture to the default full-maze framing. Called whenever the grid shape changes.
+	void UpdateMinimapFraming();
 };

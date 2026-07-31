@@ -2,9 +2,12 @@
 
 #include "MazeVisualizerActor.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Components/SceneCaptureComponent2D.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/TextureRenderTarget2D.h"
 #include "TimerManager.h"
 #include "MazeControlWidget.h"
+#include "MazeMinimapWidget.h"
 #include "Blueprint/UserWidget.h"
 
 AMazeVisualizerActor::AMazeVisualizerActor()
@@ -23,6 +26,14 @@ AMazeVisualizerActor::AMazeVisualizerActor()
 	WallInstances->SetMobility(EComponentMobility::Static);
 
 	MazeGenerator = CreateDefaultSubobject<UWilsonMazeGenerator>(TEXT("MazeGenerator"));
+
+	MinimapCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("MinimapCapture"));
+	MinimapCapture->SetupAttachment(MazeRoot);
+	MinimapCapture->ProjectionType = ECameraProjectionMode::Orthographic;
+	MinimapCapture->CaptureSource = SCS_FinalColorLDR;
+	MinimapCapture->bCaptureEveryFrame = false;
+	MinimapCapture->bCaptureOnMovement = false;
+	MinimapCapture->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
 }
 
 void AMazeVisualizerActor::BeginPlay()
@@ -42,6 +53,16 @@ void AMazeVisualizerActor::BeginPlay()
 		{
 			ControlWidgetInstance->SetMazeActor(this);
 			ControlWidgetInstance->AddToViewport();
+		}
+	}
+
+	if (bAutoCreateMinimapWidget && MinimapWidgetClass)
+	{
+		MinimapWidgetInstance = CreateWidget<UMazeMinimapWidget>(GetWorld(), MinimapWidgetClass);
+		if (MinimapWidgetInstance)
+		{
+			MinimapWidgetInstance->SetMazeActor(this);
+			MinimapWidgetInstance->AddToViewport();
 		}
 	}
 }
@@ -166,6 +187,8 @@ void AMazeVisualizerActor::BuildFloorGrid()
 {
 	FloorInstances->ClearInstances();
 
+	UpdateMinimapFraming();
+
 	if (!FloorMesh)
 	{
 		return;
@@ -249,4 +272,134 @@ void AMazeVisualizerActor::RebuildWalls()
 			}
 		}
 	}
+
+	// Walls changed shape, so the minimap's rendered image is stale regardless of whether its
+	// camera moved this frame.
+	if (MinimapCapture && MinimapRenderTarget)
+	{
+		MinimapCapture->CaptureScene();
+	}
+}
+
+void AMazeVisualizerActor::UpdateMinimapFraming()
+{
+	if (!MinimapCapture || !MazeGenerator)
+	{
+		return;
+	}
+
+	const int32 Width = FMath::Max(1, MazeGenerator->MazeWidth);
+	const int32 Height = FMath::Max(1, MazeGenerator->MazeHeight);
+
+	const int32 LongEdge = FMath::Max(8, MinimapResolution);
+	int32 RTWidth = LongEdge;
+	int32 RTHeight = LongEdge;
+	if (Width >= Height)
+	{
+		RTHeight = FMath::Max(8, FMath::RoundToInt(LongEdge * (float)Height / (float)Width));
+	}
+	else
+	{
+		RTWidth = FMath::Max(8, FMath::RoundToInt(LongEdge * (float)Width / (float)Height));
+	}
+
+	if (!MinimapRenderTarget)
+	{
+		MinimapRenderTarget = NewObject<UTextureRenderTarget2D>(this, TEXT("MinimapRenderTarget"));
+		MinimapRenderTarget->RenderTargetFormat = RTF_RGBA8;
+		MinimapRenderTarget->ClearColor = FLinearColor::Black;
+		MinimapRenderTarget->bAutoGenerateMips = false;
+		MinimapRenderTarget->InitAutoFormat(RTWidth, RTHeight);
+		MinimapRenderTarget->UpdateResourceImmediate(true);
+		MinimapCapture->TextureTarget = MinimapRenderTarget;
+	}
+	else if (MinimapRenderTarget->SizeX != RTWidth || MinimapRenderTarget->SizeY != RTHeight)
+	{
+		MinimapRenderTarget->InitAutoFormat(RTWidth, RTHeight);
+		MinimapRenderTarget->UpdateResourceImmediate(true);
+	}
+
+	// Default framing: whole maze, centered on the maze itself. UpdateMinimapView() - normally
+	// driven by a UMazeMinimapWidget every tick - overrides this to pan/zoom around a tracked pawn;
+	// this is just the fallback used before that ever runs (e.g. the editor preview outside PIE).
+	const FVector MazeCenterLocal((Width - 1) * CellSize * 0.5f, (Height - 1) * CellSize * 0.5f, 0.0f);
+	const FVector MazeCenterWorld = MazeRoot->GetComponentTransform().TransformPosition(MazeCenterLocal);
+	UpdateMinimapView(MazeCenterWorld, 1.0f);
+}
+
+void AMazeVisualizerActor::UpdateMinimapView(const FVector& FocusWorldLocation, float Scale)
+{
+	if (!MinimapCapture || !MazeGenerator || !MinimapRenderTarget)
+	{
+		return;
+	}
+
+	const float ClampedScale = FMath::Clamp(Scale, 0.05f, 1.0f);
+
+	const int32 Width = FMath::Max(1, MazeGenerator->MazeWidth);
+	const int32 Height = FMath::Max(1, MazeGenerator->MazeHeight);
+
+	const float FullWorldWidth = Width * CellSize;
+	const float FullWorldHeight = Height * CellSize;
+
+	const float ViewWorldWidth = FullWorldWidth * ClampedScale;
+	const float ViewWorldHeight = FullWorldHeight * ClampedScale;
+
+	const FVector MapCenterLocal((Width - 1) * CellSize * 0.5f, (Height - 1) * CellSize * 0.5f, 0.0f);
+	const FVector FocusLocal = MazeRoot->GetComponentTransform().InverseTransformPosition(FocusWorldLocation);
+
+	// At Scale 1 we're centered on the maze (guarantees the whole grid is visible); as Scale shrinks
+	// we blend toward centering on the focus point (e.g. the player) instead.
+	FVector CenterLocal = FMath::Lerp(MapCenterLocal, FVector(FocusLocal.X, FocusLocal.Y, 0.0f), 1.0f - ClampedScale);
+
+	// Keep the view window from hanging off the edge of the maze when the window is smaller than it.
+	const float MapMinX = -CellSize * 0.5f;
+	const float MapMaxX = FullWorldWidth - CellSize * 0.5f;
+	const float MapMinY = -CellSize * 0.5f;
+	const float MapMaxY = FullWorldHeight - CellSize * 0.5f;
+
+	if (ViewWorldWidth < FullWorldWidth)
+	{
+		CenterLocal.X = FMath::Clamp(CenterLocal.X, MapMinX + ViewWorldWidth * 0.5f, MapMaxX - ViewWorldWidth * 0.5f);
+	}
+	if (ViewWorldHeight < FullWorldHeight)
+	{
+		CenterLocal.Y = FMath::Clamp(CenterLocal.Y, MapMinY + ViewWorldHeight * 0.5f, MapMaxY - ViewWorldHeight * 0.5f);
+	}
+
+	CenterLocal.Z = MinimapCaptureHeight;
+
+	const float NewOrthoWidth = ViewWorldWidth > 0.0f ? ViewWorldWidth : FullWorldWidth;
+	const bool bMoved = !MinimapCapture->GetRelativeLocation().Equals(CenterLocal, 0.5f)
+		|| !FMath::IsNearlyEqual(MinimapCapture->OrthoWidth, NewOrthoWidth, 0.5f);
+
+	MinimapCapture->SetRelativeLocation(CenterLocal);
+	MinimapCapture->OrthoWidth = NewOrthoWidth;
+
+	if (bMoved)
+	{
+		MinimapCapture->CaptureScene();
+	}
+}
+
+FVector2D AMazeVisualizerActor::WorldToMinimapUV(const FVector& WorldLocation) const
+{
+	if (!MinimapCapture || !MinimapRenderTarget || MinimapRenderTarget->SizeX <= 0 || MinimapRenderTarget->SizeY <= 0 || MinimapCapture->OrthoWidth <= 0.0f)
+	{
+		return FVector2D(0.5f, 0.5f);
+	}
+
+	const FTransform CaptureTransform = MinimapCapture->GetComponentTransform();
+	const FVector Offset = WorldLocation - CaptureTransform.GetLocation();
+
+	const float ViewWidth = MinimapCapture->OrthoWidth;
+	const float ViewHeight = ViewWidth * (float)MinimapRenderTarget->SizeY / (float)MinimapRenderTarget->SizeX;
+
+	const float RightOffset = FVector::DotProduct(Offset, CaptureTransform.GetUnitAxis(EAxis::Y));
+	const float UpOffset = FVector::DotProduct(Offset, CaptureTransform.GetUnitAxis(EAxis::Z));
+
+	const float U = 0.5f + (RightOffset / ViewWidth);
+	const float V = 0.5f - (UpOffset / ViewHeight);
+
+	return FVector2D(U, V);
 }
