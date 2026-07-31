@@ -63,6 +63,17 @@ TSharedRef<SWidget> UMazeMinimapWidget::RebuildWidget()
 	PlayerIconSlot->SetAutoSize(false);
 	PlayerIconSlot->SetSize(FVector2D(10.0f, 10.0f));
 
+	// Pivots at its own bottom edge, which UpdatePlayerIcon() positions at the player icon's
+	// center, so rotating it swings its far end around like a compass needle.
+	PlayerDirectionIndicator = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("PlayerDirectionIndicator"));
+	PlayerDirectionIndicator->SetBrushColor(PlayerIconColor);
+	PlayerDirectionIndicator->SetRenderTransformPivot(FVector2D(0.5f, 1.0f));
+	PlayerDirectionSlot = MapCanvas->AddChildToCanvas(PlayerDirectionIndicator);
+	PlayerDirectionSlot->SetAnchors(FAnchors(0.0f, 0.0f, 0.0f, 0.0f));
+	PlayerDirectionSlot->SetAlignment(FVector2D(0.5f, 1.0f));
+	PlayerDirectionSlot->SetAutoSize(false);
+	PlayerDirectionSlot->SetSize(FVector2D(4.0f, PlayerDirectionLength));
+
 	UHorizontalBox* ScaleRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("ScaleRow"));
 	UVerticalBoxSlot* ScaleRowSlot = MainBox->AddChildToVerticalBox(ScaleRow);
 	ScaleRowSlot->SetPadding(FMargin(0.0f, 8.0f, 0.0f, 0.0f));
@@ -149,16 +160,26 @@ void UMazeMinimapWidget::UpdatePlayerIcon()
 	const FVector PlayerLocation = Pawn->GetActorLocation();
 	MazeActor->UpdateMinimapView(PlayerLocation, MinimapScale);
 
+	const FVector2D UV = MazeActor->WorldToMinimapUV(PlayerLocation);
+	const FVector2D Clamped(FMath::Clamp(UV.X, 0.0f, 1.0f), FMath::Clamp(UV.Y, 0.0f, 1.0f));
+	const FVector2D ScreenPos = Clamped * MinimapPanelSize;
+
 	if (PlayerIconSlot)
 	{
-		const FVector2D UV = MazeActor->WorldToMinimapUV(PlayerLocation);
-		const FVector2D Clamped(FMath::Clamp(UV.X, 0.0f, 1.0f), FMath::Clamp(UV.Y, 0.0f, 1.0f));
-		PlayerIconSlot->SetPosition(Clamped * MinimapPanelSize);
+		PlayerIconSlot->SetPosition(ScreenPos);
 	}
 
-	if (PlayerIconWidget)
+	if (PlayerDirectionSlot)
 	{
-		PlayerIconWidget->SetRenderTransformAngle(Pawn->GetActorRotation().Yaw);
+		PlayerDirectionSlot->SetPosition(ScreenPos);
+	}
+
+	if (PlayerDirectionIndicator)
+	{
+		// MazeRoot/MinimapCapture are unrotated relative to the world (pitch -90 only), so the
+		// capture's local Right/Up axes line up with world Y/X - which works out to the pawn's
+		// world Yaw already matching this widget's clockwise screen-rotation convention directly.
+		PlayerDirectionIndicator->SetRenderTransformAngle(Pawn->GetActorRotation().Yaw);
 	}
 }
 

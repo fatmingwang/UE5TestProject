@@ -43,6 +43,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Maze|Minimap")
 	FLinearColor PlayerIconColor = FLinearColor(1.0f, 0.15f, 0.15f, 1.0f);
 
+	// Length (pixels) of the facing indicator that sticks out from the player icon.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Maze|Minimap", meta = (ClampMin = "0.0"))
+	float PlayerDirectionLength = 16.0f;
+
 	UFUNCTION(BlueprintCallable, Category = "Maze")
 	void SetMazeActor(AMazeVisualizerActor* NewMazeActor);
 
@@ -58,6 +62,15 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UCanvasPanelSlot> PlayerIconSlot;
+
+	// Thin bar pivoting at the player icon's center, rotated to the pawn's yaw - reads as a
+	// needle/arrow sticking out of the dot in the direction the player is facing. (A rotating
+	// square icon has no visible asymmetry, so the icon alone can't show facing - this does.)
+	UPROPERTY(Transient)
+	TObjectPtr<UBorder> PlayerDirectionIndicator;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UCanvasPanelSlot> PlayerDirectionSlot;
 
 	UPROPERTY(Transient)
 	TObjectPtr<USlider> ScaleSlider;
