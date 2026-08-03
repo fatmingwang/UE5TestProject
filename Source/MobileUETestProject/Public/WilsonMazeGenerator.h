@@ -97,6 +97,22 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Maze")
 	TArray<FMazeCell> GetCells() const { return Cells; }
 
+	// Master switch for ExportToFile()/ImportFromFile(), checked identically at runtime and in-editor.
+	// Turn off to lock the current maze data down (e.g. a shipping build that shouldn't read/write
+	// maze files). Defaults to on.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Maze|IO")
+	bool bEnableFileIO = true;
+
+	// Writes the current grid (dimensions + per-cell walls/InMaze flags) to FilePath as JSON.
+	// Returns false if bEnableFileIO is off, there is no maze data yet, or the write fails.
+	UFUNCTION(BlueprintCallable, Category = "Maze|IO")
+	bool ExportToFile(const FString& FilePath) const;
+
+	// Reads a maze previously written by ExportToFile() and replaces the current grid with it.
+	// Returns false if bEnableFileIO is off, or the file is missing/invalid.
+	UFUNCTION(BlueprintCallable, Category = "Maze|IO")
+	bool ImportFromFile(const FString& FilePath);
+
 private:
 	TArray<FMazeCell> Cells;
 

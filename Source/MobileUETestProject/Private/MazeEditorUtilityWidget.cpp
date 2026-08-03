@@ -15,6 +15,10 @@
 #include "Components/Slider.h"
 #include "Components/CheckBox.h"
 #include "Components/TextBlock.h"
+#include "DesktopPlatformModule.h"
+#include "IDesktopPlatform.h"
+#include "Misc/Paths.h"
+#include "Framework/Application/SlateApplication.h"
 
 TSharedRef<SWidget> UMazeEditorUtilityWidget::RebuildWidget()
 {
@@ -71,6 +75,14 @@ TSharedRef<SWidget> UMazeEditorUtilityWidget::RebuildWidget()
 
 	GenerateButton = AddButton(ActionRow, TEXT("GenerateButton"), TEXT("Generate Instantly"));
 	ClearButton = AddButton(ActionRow, TEXT("ClearButton"), TEXT("Clear"));
+
+	UHorizontalBox* IORow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("IORow"));
+	UVerticalBoxSlot* IORowSlot = MainBox->AddChildToVerticalBox(IORow);
+	IORowSlot->SetPadding(FMargin(0.0f, 4.0f, 0.0f, 4.0f));
+	IORowSlot->SetHorizontalAlignment(HAlign_Fill);
+
+	ExportButton = AddButton(IORow, TEXT("ExportButton"), TEXT("Export..."));
+	ImportButton = AddButton(IORow, TEXT("ImportButton"), TEXT("Import..."));
 
 	BindWidgetEvents();
 	RefreshFromTargetActor();
@@ -157,6 +169,8 @@ void UMazeEditorUtilityWidget::BindWidgetEvents()
 	if (RefreshButton) RefreshButton->OnClicked.AddUniqueDynamic(this, &UMazeEditorUtilityWidget::HandleRefreshClicked);
 	if (GenerateButton) GenerateButton->OnClicked.AddUniqueDynamic(this, &UMazeEditorUtilityWidget::HandleGenerateClicked);
 	if (ClearButton) ClearButton->OnClicked.AddUniqueDynamic(this, &UMazeEditorUtilityWidget::HandleClearClicked);
+	if (ExportButton) ExportButton->OnClicked.AddUniqueDynamic(this, &UMazeEditorUtilityWidget::HandleExportClicked);
+	if (ImportButton) ImportButton->OnClicked.AddUniqueDynamic(this, &UMazeEditorUtilityWidget::HandleImportClicked);
 
 	if (WidthSlider)         WidthSlider->OnValueChanged.AddUniqueDynamic(this, &UMazeEditorUtilityWidget::HandleWidthChanged);
 	if (HeightSlider)        HeightSlider->OnValueChanged.AddUniqueDynamic(this, &UMazeEditorUtilityWidget::HandleHeightChanged);
@@ -208,6 +222,68 @@ void UMazeEditorUtilityWidget::HandleClearClicked()
 	if (TargetActor)
 	{
 		TargetActor->Stop();
+	}
+}
+
+void UMazeEditorUtilityWidget::HandleExportClicked()
+{
+	if (!TargetActor || !TargetActor->MazeGenerator || !TargetActor->MazeGenerator->bEnableFileIO)
+	{
+		return;
+	}
+
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	if (!DesktopPlatform)
+	{
+		return;
+	}
+
+	const void* ParentWindowHandle = FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr);
+
+	TArray<FString> OutFiles;
+	const bool bSelected = DesktopPlatform->SaveFileDialog(
+		ParentWindowHandle,
+		TEXT("Export Maze"),
+		FPaths::ProjectSavedDir(),
+		TEXT("Maze.json"),
+		TEXT("Maze JSON (*.json)|*.json"),
+		EFileDialogFlags::None,
+		OutFiles);
+
+	if (bSelected && OutFiles.Num() > 0)
+	{
+		TargetActor->ExportMazeToFile(OutFiles[0]);
+	}
+}
+
+void UMazeEditorUtilityWidget::HandleImportClicked()
+{
+	if (!TargetActor || !TargetActor->MazeGenerator || !TargetActor->MazeGenerator->bEnableFileIO)
+	{
+		return;
+	}
+
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	if (!DesktopPlatform)
+	{
+		return;
+	}
+
+	const void* ParentWindowHandle = FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr);
+
+	TArray<FString> OutFiles;
+	const bool bSelected = DesktopPlatform->OpenFileDialog(
+		ParentWindowHandle,
+		TEXT("Import Maze"),
+		FPaths::ProjectSavedDir(),
+		TEXT(""),
+		TEXT("Maze JSON (*.json)|*.json"),
+		EFileDialogFlags::None,
+		OutFiles);
+
+	if (bSelected && OutFiles.Num() > 0 && TargetActor->ImportMazeFromFile(OutFiles[0]))
+	{
+		RefreshFromTargetActor();
 	}
 }
 
@@ -307,6 +383,10 @@ void UMazeEditorUtilityWidget::RefreshFromTargetActor()
 	{
 		return;
 	}
+
+	const ESlateVisibility IOVisibility = TargetActor->MazeGenerator->bEnableFileIO ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
+	if (ExportButton) ExportButton->SetVisibility(IOVisibility);
+	if (ImportButton) ImportButton->SetVisibility(IOVisibility);
 
 	if (WidthSlider)         WidthSlider->SetValue((float)TargetActor->MazeGenerator->MazeWidth);
 	if (HeightSlider)        HeightSlider->SetValue((float)TargetActor->MazeGenerator->MazeHeight);

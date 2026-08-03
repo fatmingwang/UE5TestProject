@@ -14,6 +14,13 @@
 #include "Components/CheckBox.h"
 #include "Components/TextBlock.h"
 #include "Components/ProgressBar.h"
+#include "Misc/Paths.h"
+
+// Fixed, mobile-safe location (no native file-picker at runtime) that ExportButton/ImportButton use.
+static FString GetDefaultMazeFilePath()
+{
+	return FPaths::ProjectSavedDir() / TEXT("MazeExports") / TEXT("Maze.json");
+}
 
 TSharedRef<SWidget> UMazeControlWidget::RebuildWidget()
 {
@@ -64,6 +71,14 @@ TSharedRef<SWidget> UMazeControlWidget::RebuildWidget()
 
 	StopButton = AddButton(ButtonRowBottom, TEXT("StopButton"), TEXT("Stop"));
 	RestartButton = AddButton(ButtonRowBottom, TEXT("RestartButton"), TEXT("Restart"));
+
+	UHorizontalBox* ButtonRowIO = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("ButtonRowIO"));
+	UVerticalBoxSlot* ButtonRowIOSlot = MainBox->AddChildToVerticalBox(ButtonRowIO);
+	ButtonRowIOSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 4.0f));
+	ButtonRowIOSlot->SetHorizontalAlignment(HAlign_Fill);
+
+	ExportButton = AddButton(ButtonRowIO, TEXT("ExportButton"), TEXT("Export"));
+	ImportButton = AddButton(ButtonRowIO, TEXT("ImportButton"), TEXT("Import"));
 
 	ProgressBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("ProgressBar"));
 	UVerticalBoxSlot* ProgressSlot = MainBox->AddChildToVerticalBox(ProgressBar);
@@ -178,6 +193,8 @@ void UMazeControlWidget::BindWidgetEvents()
 	if (PauseButton)   PauseButton->OnClicked.AddUniqueDynamic(this, &UMazeControlWidget::HandlePauseClicked);
 	if (StopButton)    StopButton->OnClicked.AddUniqueDynamic(this, &UMazeControlWidget::HandleStopClicked);
 	if (RestartButton) RestartButton->OnClicked.AddUniqueDynamic(this, &UMazeControlWidget::HandleRestartClicked);
+	if (ExportButton)  ExportButton->OnClicked.AddUniqueDynamic(this, &UMazeControlWidget::HandleExportClicked);
+	if (ImportButton)  ImportButton->OnClicked.AddUniqueDynamic(this, &UMazeControlWidget::HandleImportClicked);
 
 	if (WidthSlider)        WidthSlider->OnValueChanged.AddUniqueDynamic(this, &UMazeControlWidget::HandleWidthChanged);
 	if (HeightSlider)       HeightSlider->OnValueChanged.AddUniqueDynamic(this, &UMazeControlWidget::HandleHeightChanged);
@@ -226,6 +243,22 @@ void UMazeControlWidget::HandleStopClicked()
 void UMazeControlWidget::HandleRestartClicked()
 {
 	if (MazeActor) MazeActor->Restart();
+}
+
+void UMazeControlWidget::HandleExportClicked()
+{
+	if (MazeActor)
+	{
+		MazeActor->ExportMazeToFile(GetDefaultMazeFilePath());
+	}
+}
+
+void UMazeControlWidget::HandleImportClicked()
+{
+	if (MazeActor && MazeActor->ImportMazeFromFile(GetDefaultMazeFilePath()))
+	{
+		RefreshFromMazeActor();
+	}
 }
 
 void UMazeControlWidget::HandleWidthChanged(float NewValue)
@@ -313,6 +346,10 @@ void UMazeControlWidget::RefreshFromMazeActor()
 	if (StepIntervalSlider) StepIntervalSlider->SetValue(MazeActor->StepInterval);
 	if (FixedSeedCheckBox)  FixedSeedCheckBox->SetIsChecked(MazeActor->MazeGenerator->bUseFixedSeed);
 	if (SeedSlider)         SeedSlider->SetValue((float)MazeActor->MazeGenerator->RandomSeed);
+
+	const ESlateVisibility IOVisibility = MazeActor->MazeGenerator->bEnableFileIO ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
+	if (ExportButton)       ExportButton->SetVisibility(IOVisibility);
+	if (ImportButton)       ImportButton->SetVisibility(IOVisibility);
 
 	if (WidthLabel)         WidthLabel->SetText(FText::FromString(FString::Printf(TEXT("Width: %d"), MazeActor->MazeGenerator->MazeWidth)));
 	if (HeightLabel)        HeightLabel->SetText(FText::FromString(FString::Printf(TEXT("Height: %d"), MazeActor->MazeGenerator->MazeHeight)));

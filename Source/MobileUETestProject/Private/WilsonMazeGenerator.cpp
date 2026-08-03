@@ -1,6 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "WilsonMazeGenerator.h"
+#include "Dom/JsonObject.h"
+#include "Dom/JsonValue.h"
+#include "Serialization/JsonSerializer.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "HAL/PlatformFileManager.h"
 
 UWilsonMazeGenerator::UWilsonMazeGenerator()
 {
@@ -226,4 +232,144 @@ FMazeCell UWilsonMazeGenerator::GetCell(int32 X, int32 Y) const
 		return FMazeCell();
 	}
 	return Cells[CellIndex(X, Y)];
+}
+
+bool UWilsonMazeGenerator::ExportToFile(const FString& FilePath) const
+{
+	if (!bEnableFileIO)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UWilsonMazeGenerator::ExportToFile: file IO is disabled (bEnableFileIO = false)."));
+		return false;
+	}
+
+	if (Cells.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UWilsonMazeGenerator::ExportToFile: no maze data to export."));
+		return false;
+	}
+
+	TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
+	Root->SetNumberField(TEXT("Width"), MazeWidth);
+	Root->SetNumberField(TEXT("Height"), MazeHeight);
+
+	TArray<TSharedPtr<FJsonValue>> WallsArray;
+	TArray<TSharedPtr<FJsonValue>> InMazeArray;
+	WallsArray.Reserve(Cells.Num());
+	InMazeArray.Reserve(Cells.Num());
+	for (const FMazeCell& Cell : Cells)
+	{
+		WallsArray.Add(MakeShared<FJsonValueNumber>(Cell.Walls));
+		InMazeArray.Add(MakeShared<FJsonValueBoolean>(Cell.bInMaze));
+	}
+	Root->SetArrayField(TEXT("Walls"), WallsArray);
+	Root->SetArrayField(TEXT("InMaze"), InMazeArray);
+
+	FString OutputString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
+	if (!FJsonSerializer::Serialize(Root, Writer))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UWilsonMazeGenerator::ExportToFile: JSON serialization failed."));
+		return false;
+	}
+
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+	const FString Directory = FPaths::GetPath(FilePath);
+	if (!Directory.IsEmpty() && !PlatformFile.DirectoryExists(*Directory))
+	{
+		PlatformFile.CreateDirectoryTree(*Directory);
+	}
+
+	if (!FFileHelper::SaveStringToFile(OutputString, *FilePath))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UWilsonMazeGenerator::ExportToFile: failed to write '%s'."), *FilePath);
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("UWilsonMazeGenerator::ExportToFile: wrote maze to '%s'."), *FilePath);
+	return true;
+}
+
+bool UWilsonMazeGenerator::ImportFromFile(const FString& FilePath)
+{
+	if (!bEnableFileIO)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UWilsonMazeGenerator::ImportFromFile: file IO is disabled (bEnableFileIO = false)."));
+		return false;
+	}
+
+	FString InputString;
+	if (!FFileHelper::LoadFileToString(InputString, *FilePath))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UWilsonMazeGenerator::ImportFromFile: failed to read '%s'."), *FilePath);
+		return false;
+	}
+
+	TSharedPtr<FJsonObject> Root;
+	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(InputString);
+	if (!FJsonSerializer::Deserialize(Reader, Root) || !Root.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UWilsonMazeGenerator::ImportFromFile: failed to parse '%s' as JSON."), *FilePath);
+		return false;
+	}
+
+	int32 NewWidth = 0;
+	int32 NewHeight = 0;
+	const TArray<TSharedPtr<FJsonValue>>* WallsArray = nullptr;
+	const TArray<TSharedPtr<FJsonValue>>* InMazeArray = nullptr;
+
+	if (!Root->TryGetNumberField(TEXT("Width"), NewWidth) ||
+		!Root->TryGetNumberField(TEXT("Height"), NewHeight) ||
+		!Root->TryGetArrayField(TEXT("Walls"), WallsArray) ||
+		!Root->TryGetArrayField(TEXT("InMaze"), InMazeArray))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UWilsonMazeGenerator::ImportFromFile: '%s' is missing required fields."), *FilePath);
+		return false;
+	}
+
+	const int32 NumCells = NewWidth * NewHeight;
+	if (NewWidth < 2 || NewHeight < 2 || WallsArray->Num() != NumCells || InMazeArray->Num() != NumCells)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UWilsonMazeGenerator::ImportFromFile: '%s' has inconsistent dimensions/cell data."), *FilePath);
+		return false;
+	}
+
+	MazeWidth = NewWidth;
+	MazeHeight = NewHeight;
+
+	Cells.SetNum(NumCells);
+	for (int32 i = 0; i < NumCells; ++i)
+	{
+		Cells[i].Walls = (uint8)FMath::Clamp((*WallsArray)[i]->AsNumber(), 0.0, 15.0);
+		Cells[i].bInMaze = (*InMazeArray)[i]->AsBool();
+	}
+
+	// Rebuild the walk-state bookkeeping to match the imported grid so GenerateStep()/GenerateInstant()
+	// would still behave correctly if called afterward (e.g. resuming generation on a partial import).
+	WalkNextDir.Init(-1, NumCells);
+	UnvisitedCells.Reset(NumCells);
+	UnvisitedIndexOf.SetNumUninitialized(NumCells);
+	NumCellsInMaze = 0;
+	for (int32 i = 0; i < NumCells; ++i)
+	{
+		if (Cells[i].bInMaze)
+		{
+			++NumCellsInMaze;
+			UnvisitedIndexOf[i] = INDEX_NONE;
+		}
+		else
+		{
+			UnvisitedIndexOf[i] = UnvisitedCells.Add(i);
+		}
+	}
+	CurrentWalkCell = INDEX_NONE;
+	WalkStartCell = INDEX_NONE;
+
+	UE_LOG(LogTemp, Log, TEXT("UWilsonMazeGenerator::ImportFromFile: loaded maze from '%s' (%dx%d)."), *FilePath, MazeWidth, MazeHeight);
+
+	if (IsGenerationComplete())
+	{
+		OnMazeGenerationComplete.Broadcast();
+	}
+
+	return true;
 }

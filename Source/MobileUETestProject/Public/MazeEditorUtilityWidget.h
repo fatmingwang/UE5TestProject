@@ -46,6 +46,12 @@ protected:
 	TObjectPtr<UButton> ClearButton;
 
 	UPROPERTY(Transient)
+	TObjectPtr<UButton> ExportButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UButton> ImportButton;
+
+	UPROPERTY(Transient)
 	TObjectPtr<USlider> WidthSlider;
 
 	UPROPERTY(Transient)
@@ -92,6 +98,12 @@ protected:
 
 	UFUNCTION()
 	void HandleClearClicked();
+
+	UFUNCTION()
+	void HandleExportClicked();
+
+	UFUNCTION()
+	void HandleImportClicked();
 
 	UFUNCTION()
 	void HandleWidthChanged(float NewValue);

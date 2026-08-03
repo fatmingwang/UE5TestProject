@@ -174,6 +174,17 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Maze|Minimap")
 	FVector2D WorldToMinimapUV(const FVector& WorldLocation) const;
 
+	// Saves the current maze grid to FilePath (JSON). Gated by MazeGenerator->bEnableFileIO.
+	// Works identically at runtime and in-editor.
+	UFUNCTION(BlueprintCallable, Category = "Maze|IO")
+	bool ExportMazeToFile(const FString& FilePath) const;
+
+	// Loads a maze grid previously written by ExportMazeToFile() and rebuilds the visualization
+	// (floor/walls/minimap) to match. Gated by MazeGenerator->bEnableFileIO. Stops any in-progress
+	// animated generation. Works identically at runtime and in-editor.
+	UFUNCTION(BlueprintCallable, Category = "Maze|IO")
+	bool ImportMazeFromFile(const FString& FilePath);
+
 protected:
 	virtual void BeginPlay() override;
 	// Builds an instant preview in the editor viewport (outside PIE) so the actor doesn't sit

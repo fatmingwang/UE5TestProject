@@ -28,7 +28,7 @@ public class MobileUETestProject : ModuleRules
 			// MazeEditorUtilityWidget.h/.cpp compile only correctly for the Editor target - if the
 			// MobileUETestProject (Game) target is ever built, these two files need to move out into
 			// their own editor-only module first (that move needs an editor restart to register).
-			PrivateDependencyModuleNames.AddRange(new string[] { "UnrealEd", "Blutility", "UMGEditor" });
+			PrivateDependencyModuleNames.AddRange(new string[] { "UnrealEd", "Blutility", "UMGEditor", "DesktopPlatform" });
 		}
 
 		// Uncomment if you are using online features

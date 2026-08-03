@@ -49,6 +49,12 @@ protected:
 	TObjectPtr<UButton> RestartButton;
 
 	UPROPERTY(Transient)
+	TObjectPtr<UButton> ExportButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UButton> ImportButton;
+
+	UPROPERTY(Transient)
 	TObjectPtr<USlider> WidthSlider;
 
 	UPROPERTY(Transient)
@@ -92,6 +98,12 @@ protected:
 
 	UFUNCTION()
 	void HandleRestartClicked();
+
+	UFUNCTION()
+	void HandleExportClicked();
+
+	UFUNCTION()
+	void HandleImportClicked();
 
 	UFUNCTION()
 	void HandleWidthChanged(float NewValue);

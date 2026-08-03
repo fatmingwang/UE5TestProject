@@ -382,6 +382,37 @@ void AMazeVisualizerActor::UpdateMinimapView(const FVector& FocusWorldLocation, 
 	}
 }
 
+bool AMazeVisualizerActor::ExportMazeToFile(const FString& FilePath) const
+{
+	if (!MazeGenerator)
+	{
+		return false;
+	}
+
+	return MazeGenerator->ExportToFile(FilePath);
+}
+
+bool AMazeVisualizerActor::ImportMazeFromFile(const FString& FilePath)
+{
+	if (!MazeGenerator)
+	{
+		return false;
+	}
+
+	GetWorldTimerManager().ClearTimer(StepTimerHandle);
+
+	if (!MazeGenerator->ImportFromFile(FilePath))
+	{
+		return false;
+	}
+
+	BuildFloorGrid();
+	RebuildWalls();
+	SetPlayState(MazeGenerator->IsGenerationComplete() ? EMazePlayState::Completed : EMazePlayState::Stopped);
+
+	return true;
+}
+
 FVector2D AMazeVisualizerActor::WorldToMinimapUV(const FVector& WorldLocation) const
 {
 	if (!MinimapCapture || !MinimapRenderTarget || MinimapRenderTarget->SizeX <= 0 || MinimapRenderTarget->SizeY <= 0 || MinimapCapture->OrthoWidth <= 0.0f)
