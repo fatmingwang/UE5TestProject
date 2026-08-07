@@ -18,19 +18,19 @@ public:
 	// Save slot name constant
 	static const FString SaveSlotName;
 	
-	UPROPERTY(VisibleAnywhere, Category = "SaveGame")
+	UPROPERTY(VisibleAnywhere, Category = "MySaveGame", meta = (DisplayName = "Saved Level Name"))
 	FString SavedLevelName;
 
-	UPROPERTY(VisibleAnywhere, Category = "SaveGame")
+	UPROPERTY(VisibleAnywhere, Category = "MySaveGame", meta = (DisplayName = "Saved Player Position"))
 	FVector SavedPlayerPosition;
 
-	UPROPERTY(VisibleAnywhere, Category = "SaveGame")
+	UPROPERTY(VisibleAnywhere, Category = "MySaveGame", meta = (DisplayName = "Saved Player Rotation"))
 	FRotator SavedPlayerRotation;
 
 	// Static helper functions
-	UFUNCTION(BlueprintCallable, Category = "SaveGame", meta = (WorldContext = "WorldContextObject"))
+	UFUNCTION(BlueprintCallable, Category = "MySaveGame", meta = (WorldContext = "WorldContextObject"))
 	static void SaveGame(UObject* WorldContextObject);
 
-	UFUNCTION(BlueprintCallable, Category = "SaveGame", meta = (WorldContext = "WorldContextObject"))
+	UFUNCTION(BlueprintCallable, Category = "MySaveGame", meta = (WorldContext = "WorldContextObject"))
 	static void LoadGame(UObject* WorldContextObject);
 };

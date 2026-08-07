@@ -29,25 +29,25 @@ class MOBILEUETESTPROJECT_API UMazeMinimapWidget : public UUserWidget
 
 public:
 	// Actor this widget displays. Assign in the Blueprint details panel, or call SetMazeActor() at runtime.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Maze")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyMaze", meta = (DisplayName = "Maze Actor"))
 	TObjectPtr<AMazeVisualizerActor> MazeActor;
 
 	// 1.0 = whole maze visible. 0.1 = only ~10% of the maze's extent, centered on the player, visible.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Maze|Minimap", meta = (ClampMin = "0.05", ClampMax = "1.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyMaze|Minimap", meta = (ClampMin = "0.05", ClampMax = "1.0", DisplayName = "Minimap Scale"))
 	float MinimapScale = 1.0f;
 
 	// Screen-space size (both edges) of the minimap panel, in pixels.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Maze|Minimap")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyMaze|Minimap", meta = (DisplayName = "Minimap Panel Size"))
 	float MinimapPanelSize = 220.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Maze|Minimap")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyMaze|Minimap", meta = (DisplayName = "Player Icon Color"))
 	FLinearColor PlayerIconColor = FLinearColor(1.0f, 0.15f, 0.15f, 1.0f);
 
 	// Length (pixels) of the facing indicator that sticks out from the player icon.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Maze|Minimap", meta = (ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyMaze|Minimap", meta = (ClampMin = "0.0", DisplayName = "Player Direction Length"))
 	float PlayerDirectionLength = 16.0f;
 
-	UFUNCTION(BlueprintCallable, Category = "Maze")
+	UFUNCTION(BlueprintCallable, Category = "MyMaze")
 	void SetMazeActor(AMazeVisualizerActor* NewMazeActor);
 
 protected:

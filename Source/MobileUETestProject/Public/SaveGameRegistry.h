@@ -18,27 +18,27 @@ struct FSaveSlotInfo
     GENERATED_BODY()
 
     // The slot name used to save/load
-    UPROPERTY(BlueprintReadOnly, Category = SAVE_SLOT_CATEGORY)
+    UPROPERTY(BlueprintReadOnly, Category = SAVE_SLOT_CATEGORY, meta = (DisplayName = "Slot Name"))
     FString SlotName;
 
     // When the save was created
-    UPROPERTY(BlueprintReadOnly, Category = SAVE_SLOT_CATEGORY)
+    UPROPERTY(BlueprintReadOnly, Category = SAVE_SLOT_CATEGORY, meta = (DisplayName = "Save Time"))
     FDateTime SaveTime;
 
     // Display-friendly save time string
-    UPROPERTY(BlueprintReadOnly, Category = SAVE_SLOT_CATEGORY)
+    UPROPERTY(BlueprintReadOnly, Category = SAVE_SLOT_CATEGORY, meta = (DisplayName = "Save Time String"))
     FString SaveTimeString;
 
     // The level/map name when saved
-    UPROPERTY(BlueprintReadOnly, Category = SAVE_SLOT_CATEGORY)
+    UPROPERTY(BlueprintReadOnly, Category = SAVE_SLOT_CATEGORY, meta = (DisplayName = "Level Name"))
     FString LevelName;
 
     // Number of actors saved
-    UPROPERTY(BlueprintReadOnly, Category = SAVE_SLOT_CATEGORY)
+    UPROPERTY(BlueprintReadOnly, Category = SAVE_SLOT_CATEGORY, meta = (DisplayName = "Actor Count"))
     int32 ActorCount;
 
     // Optional user-defined display name
-    UPROPERTY(BlueprintReadWrite, Category = SAVE_SLOT_CATEGORY)
+    UPROPERTY(BlueprintReadWrite, Category = SAVE_SLOT_CATEGORY, meta = (DisplayName = "Display Name"))
     FString DisplayName;
 
     // Default constructor
@@ -117,7 +117,7 @@ public:
 
     // Register info from a save game object and persist the registry.
     // Call this after every successful SaveGameToSlot().
-    UFUNCTION(BlueprintCallable, Category = "Save Registry",
+    UFUNCTION(BlueprintCallable, Category = "MySave Registry",
         meta = (WorldContext = "WorldContextObject"))
     static void UpdateRegistry(UObject* WorldContextObject, const FSaveSlotInfo& SlotInfo);
 
@@ -125,7 +125,7 @@ public:
     // Saves the object to disk and automatically updates the registry.
     // SlotInfo metadata (LevelName, ActorCount) is gathered automatically
     // from the save object when possible; pass a custom DisplayName optionally.
-    UFUNCTION(BlueprintCallable, Category = "Save Registry",
+    UFUNCTION(BlueprintCallable, Category = "MySave Registry",
         meta = (WorldContext = "WorldContextObject"))
     static bool SaveGame(UObject* WorldContextObject, USaveGame* SaveGameObject,
         const FString& SlotName, int32 UserIndex = 0,
@@ -143,10 +143,10 @@ class MOBILEUETESTPROJECT_API URegisteredSaveGame : public USaveGame
 
 public:
     // The slot name this save game will be stored under.
-    UPROPERTY(BlueprintReadWrite, Category = "Save Registry")
+    UPROPERTY(BlueprintReadWrite, Category = "MySave Registry", meta = (DisplayName = "Slot Name"))
     FString SlotName;
 
     // The user index passed to SaveGameToSlot / LoadGameFromSlot.
-    UPROPERTY(BlueprintReadWrite, Category = "Save Registry")
+    UPROPERTY(BlueprintReadWrite, Category = "MySave Registry", meta = (DisplayName = "User Index"))
     int32 UserIndex = 0;
 };

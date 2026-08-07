@@ -14,33 +14,33 @@ class MOBILEUETESTPROJECT_API ACameraPawn2D : public APawn
 {
     GENERATED_BODY()
 protected:
-    UPROPERTY(EditAnywhere, Category = "Input")
+    UPROPERTY(EditAnywhere, Category = "MyInput", meta = (DisplayName = "Input Config"))
     UMyEditorInputConfig* InputConfig;
-    UPROPERTY(EditAnywhere, Category = "Input", meta = (DisplayName = "Use 2D XY(not XZ)"))
+    UPROPERTY(EditAnywhere, Category = "MyInput", meta = (DisplayName = "Use 2D XY(not XZ)"))
     bool m_bUseXYNotXZ;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup", meta = (DisplayName = "Target Place Actor Class"))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MySetup", meta = (DisplayName = "Target Place Actor Class"))
 	TSubclassOf<AActor> m_TargetPlaceActor; // The Actor to spawn
 	bool m_bFlipXYIfXIsRotation90Degree ; // Whether to flip X and Y axes when rotation is 90 degrees
 public:
 	ACameraPawn2D();
 
-	UFUNCTION(BlueprintCallable, Category = "Camera2D", meta = (DisplayName = "Set Target Place Actor Class"))
+    UFUNCTION(BlueprintCallable, Category = "MyCamera2D", meta = (DisplayName = "Set Target Place Actor Class"))
 	void BP_SetTargetPlaceActor(TSubclassOf<AActor> NewActorClass);
 
-	UFUNCTION(BlueprintPure, Category = "Camera2D", meta = (DisplayName = "Get Target Place Actor Class"))
+    UFUNCTION(BlueprintPure, Category = "MyCamera2D", meta = (DisplayName = "Get Target Place Actor Class"))
 	TSubclassOf<AActor> BP_GetTargetPlaceActor() const;
 
 	// Returns ReflectionForceMultiplier if DraggedActor is APinActor, otherwise -1
-	UFUNCTION(BlueprintPure, Category = "Camera2D|Pin", meta = (DisplayName = "Get Pin Reflection Force Multiplier"))
+    UFUNCTION(BlueprintPure, Category = "MyCamera2D|Pin", meta = (DisplayName = "Get Pin Reflection Force Multiplier"))
 	float BP_GetPinReflectionForceMultiplier() const;
 
 	// Sets ReflectionForceMultiplier on DraggedActor if it is APinActor
-	UFUNCTION(BlueprintCallable, Category = "Camera2D|Pin", meta = (DisplayName = "Set Pin Reflection Force Multiplier"))
+    UFUNCTION(BlueprintCallable, Category = "MyCamera2D|Pin", meta = (DisplayName = "Set Pin Reflection Force Multiplier"))
 	void BP_SetPinReflectionForceMultiplier(float NewValue);
 
 	// Locks actor physics behavior based on camera mode (XY or XZ plane)
-	UFUNCTION(BlueprintCallable, Category = "Camera2D|Physics", meta = (DisplayName = "Lock Actor Physics Behavior"))
+    UFUNCTION(BlueprintCallable, Category = "MyCamera2D|Physics", meta = (DisplayName = "Lock Actor Physics Behavior"))
 	void LockActorPhysicsBehavior(AActor* TargetActor);
 
 protected:
@@ -58,7 +58,7 @@ protected:
     void GetActorPlaneDepth(FVector& e_Input) const;
 
 private:
-    UPROPERTY(VisibleAnywhere)
+    UPROPERTY(VisibleAnywhere, meta = (DisplayName = "Camera Component"))
     UCameraComponent* CameraComponent;
 
     // The actor currently being dragged; nullptr when nothing is selected
@@ -71,23 +71,23 @@ private:
     //bool bIsPanning = false;
     FVector2D LastMousePosition;
 
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Pan Speed"))
     float PanSpeed = 5.0f;
 
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Zoom Step"))
     float ZoomStep = 100.0f;
 
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Min Ortho Width"))
     float MinOrthoWidth = 512.0f;
 
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Max Ortho Width"))
     float MaxOrthoWidth = 4096.0f;
 
     // Fixed depth on the non-movement axis where actors are placed/dragged
-    UPROPERTY(EditAnywhere, Category = "Setup", meta = (DisplayName = "Actor Plane Depth (XY mode Z)"))
+    UPROPERTY(EditAnywhere, Category = "MySetup", meta = (DisplayName = "Actor Plane Depth (XY mode Z)"))
     float m_ActorPlaneDepthXY = 250.0f;
 
-    UPROPERTY(EditAnywhere, Category = "Setup", meta = (DisplayName = "Actor Plane Depth (XZ mode Y)"))
+    UPROPERTY(EditAnywhere, Category = "MySetup", meta = (DisplayName = "Actor Plane Depth (XZ mode Y)"))
     float m_ActorPlaneDepthXZ = 700.0f;
 
     // Input handlers

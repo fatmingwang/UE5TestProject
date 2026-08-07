@@ -16,21 +16,21 @@ class MOBILEUETESTPROJECT_API UMyEditorInputConfig : public UDataAsset
 {
 	GENERATED_BODY()
 public:
-    UPROPERTY(EditAnywhere, Category = "Actions", meta = (DisplayName = "Camera Input Mapping Cotext"))
+    UPROPERTY(EditAnywhere, Category = "MyActions", meta = (DisplayName = "Camera Input Mapping Cotext"))
     UInputMappingContext* m_CameraIMC; // WASD Move
 
-    UPROPERTY(EditAnywhere, Category = "Actions", meta = (DisplayName = "KeyBoard WASD"))
+    UPROPERTY(EditAnywhere, Category = "MyActions", meta = (DisplayName = "KeyBoard WASD"))
     UInputAction* m_KeyboardActionMove;            // Axis2D
 
-    UPROPERTY(EditAnywhere, Category = "Actions", meta = (DisplayName = "Mouse Move"))
+    UPROPERTY(EditAnywhere, Category = "MyActions", meta = (DisplayName = "Mouse Move"))
     UInputAction* m_MouseActionMove;      // Axis2D
 
-    UPROPERTY(EditAnywhere, Category = "Actions", meta = (DisplayName = "Right Mouse Button Move"))
+    UPROPERTY(EditAnywhere, Category = "MyActions", meta = (DisplayName = "Right Mouse Button Move"))
     UInputAction* m_MouseRightButtonAction;// Digital (bool)	
 
-    UPROPERTY(EditAnywhere, Category = "Actions", meta = (DisplayName = "Left Mouse Button Move"))
+    UPROPERTY(EditAnywhere, Category = "MyActions", meta = (DisplayName = "Left Mouse Button Move"))
     UInputAction* m_MouseLeftButtonActionMove;           // Digital (bool)	
 
-    UPROPERTY(EditAnywhere, Category = "Actions")
+    UPROPERTY(EditAnywhere, Category = "MyActions", meta = (DisplayName = "Mouse Wheel Zoom"))
     UInputAction* m_MouseWheelActionZoom;            // axis 1D
 };

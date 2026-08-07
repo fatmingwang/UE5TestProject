@@ -16,36 +16,36 @@ class MOBILEUETESTPROJECT_API APinActor : public AActor
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components",
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "MyComponents",
     meta = (DisplayName = "Pin Mesh"))
 	UStaticMeshComponent* PinMesh;
 
 	// The force multiplier applied to the reflection impulse
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Physics", meta = (DisplayName = "Reflection Force Multiplier"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyPhysics", meta = (DisplayName = "Reflection Force Multiplier"))
 	float ReflectionForceMultiplier;
 
 	// Maximum random deviation (degrees) applied to the reflected direction to make bounces less perfect
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Physics", meta = (DisplayName = "Random Bounce Angle (Deg)"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyPhysics", meta = (DisplayName = "Random Bounce Angle (Deg)"))
 	float RandomBounceAngleDegrees = 6.0f;
 
 	// 0 = pure radial outward (arcade pinball feel), 1 = pure mirror reflection
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Physics", meta = (DisplayName = "Radial vs Reflect Blend", ClampMin = "0.0", ClampMax = "1.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyPhysics", meta = (DisplayName = "Radial vs Reflect Blend", ClampMin = "0.0", ClampMax = "1.0"))
 	float RadialReflectBlend = 0.3f;
 
 	// Ball will always exit at least this fast (prevents ball getting stuck on a pin)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Physics", meta = (DisplayName = "Min Exit Speed"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyPhysics", meta = (DisplayName = "Min Exit Speed"))
 	float MinExitSpeed = 400.0f;
 
 	// Ignore re-hits from the same ball within this window (seconds) to prevent wedge-lock
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Physics", meta = (DisplayName = "Hit Cooldown (sec)"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyPhysics", meta = (DisplayName = "Hit Cooldown (sec)"))
 	float HitCooldownSeconds = 0.15f;
 
 	static float m_fGlobalReflectionForceMultiplier;
 
-	UFUNCTION(BlueprintCallable, Category = "Physics", meta = (DisplayName = "Get Global Reflection Force Multiplier"))
+	UFUNCTION(BlueprintCallable, Category = "MyPhysics", meta = (DisplayName = "Get Global Reflection Force Multiplier"))
 	static float GetGlobalReflectionForceMultiplier();
 
-	UFUNCTION(BlueprintCallable,  Category = "Physics", meta = (DisplayName = "Set Global Reflection Force Multiplier"))
+	UFUNCTION(BlueprintCallable,  Category = "MyPhysics", meta = (DisplayName = "Set Global Reflection Force Multiplier"))
 	static void SetGlobalReflectionForceMultiplier(float NewValue);
 
 
@@ -75,6 +75,6 @@ private:
 
 public:
 	// Sound to play when a ball collides with the pin
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio", meta = (DisplayName = "Hit Sound"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyAudio", meta = (DisplayName = "Hit Sound"))
 	USoundBase* HitSound;
 };

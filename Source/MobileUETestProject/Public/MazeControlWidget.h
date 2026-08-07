@@ -25,10 +25,10 @@ class MOBILEUETESTPROJECT_API UMazeControlWidget : public UUserWidget
 
 public:
 	// Actor this widget drives. Assign in the Blueprint details panel, or call SetMazeActor() at runtime.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Maze")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyMaze", meta = (DisplayName = "Maze Actor"))
 	TObjectPtr<AMazeVisualizerActor> MazeActor;
 
-	UFUNCTION(BlueprintCallable, Category = "Maze")
+	UFUNCTION(BlueprintCallable, Category = "MyMaze")
 	void SetMazeActor(AMazeVisualizerActor* NewMazeActor);
 
 protected:
