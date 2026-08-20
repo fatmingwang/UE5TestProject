@@ -11,6 +11,7 @@ class UInstancedStaticMeshComponent;
 class UStaticMesh;
 class UMazeControlWidget;
 class UMazeMinimapWidget;
+class UStoreButtonWidget;
 class USceneCaptureComponent2D;
 class UTextureRenderTarget2D;
 
@@ -56,12 +57,17 @@ public:
 	TObjectPtr<UStaticMesh> WallMesh;
 
 	// World-space size (uu) of FloorMesh/WallMesh's unmodified bounding box (e.g. 100 for engine
-	// BasicShapes). Used to scale instances so CellSize/WallHeight/WallThickness read in uu.
+	// BasicShapes). Used to scale instances so CellSizeX/CellSizeY/WallHeight/WallThickness read in uu.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyMaze|Visual", meta = (ClampMin = "1.0", DisplayName = "Mesh Unit Size"))
 	float MeshUnitSize = 100.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyMaze|Visual", meta = (ClampMin = "1.0", DisplayName = "Cell Size"))
-	float CellSize = 200.0f;
+	// Physical world-space size (uu) of one maze cell along X. Total maze width = MazeWidth * CellSizeX.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyMaze|Visual", meta = (ClampMin = "1.0", DisplayName = "Cell Size X"))
+	float CellSizeX = 200.0f;
+
+	// Physical world-space size (uu) of one maze cell along Y. Total maze height = MazeHeight * CellSizeY.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyMaze|Visual", meta = (ClampMin = "1.0", DisplayName = "Cell Size Y"))
+	float CellSizeY = 200.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyMaze|Visual", meta = (ClampMin = "1.0", DisplayName = "Wall Height"))
 	float WallHeight = 200.0f;
@@ -102,6 +108,18 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "MyMaze|UI", meta = (DisplayName = "Minimap Widget Instance"))
 	TObjectPtr<UMazeMinimapWidget> MinimapWidgetInstance;
+
+	// If set, a UStoreButtonWidget instance is created and added to the viewport on BeginPlay -
+	// clicking it pops up the store UI (see UStoreButtonWidget). Defaults to the base
+	// UStoreButtonWidget class if left unset, so this works with no extra Blueprint wiring.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyMaze|UI", meta = (DisplayName = "Store Button Widget Class"))
+	TSubclassOf<UStoreButtonWidget> StoreButtonWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyMaze|UI", meta = (DisplayName = "Auto Create Store Button"))
+	bool bAutoCreateStoreButton = true;
+
+	UPROPERTY(BlueprintReadOnly, Category = "MyMaze|UI", meta = (DisplayName = "Store Button Widget Instance"))
+	TObjectPtr<UStoreButtonWidget> StoreButtonWidgetInstance;
 
 	// Top-down camera that renders the maze into MinimapRenderTarget. Framing (position/zoom) is
 	// driven every frame by UpdateMinimapView() - normally called from a UMazeMinimapWidget - so it

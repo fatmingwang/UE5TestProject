@@ -61,7 +61,8 @@ TSharedRef<SWidget> UMazeEditorUtilityWidget::RebuildWidget()
 
 	WidthSlider = AddLabeledSlider(MainBox, WidthLabel, TEXT("WidthSlider"), TEXT("Width"), 2.0f, 60.0f);
 	HeightSlider = AddLabeledSlider(MainBox, HeightLabel, TEXT("HeightSlider"), TEXT("Height"), 2.0f, 60.0f);
-	CellSizeSlider = AddLabeledSlider(MainBox, CellSizeLabel, TEXT("CellSizeSlider"), TEXT("Cell Size"), 50.0f, 1000.0f);
+	CellSizeXSlider = AddLabeledSlider(MainBox, CellSizeXLabel, TEXT("CellSizeXSlider"), TEXT("Cell Size X"), 50.0f, 1000.0f);
+	CellSizeYSlider = AddLabeledSlider(MainBox, CellSizeYLabel, TEXT("CellSizeYSlider"), TEXT("Cell Size Y"), 50.0f, 1000.0f);
 	WallHeightSlider = AddLabeledSlider(MainBox, WallHeightLabel, TEXT("WallHeightSlider"), TEXT("Wall Height"), 50.0f, 1000.0f);
 	WallThicknessSlider = AddLabeledSlider(MainBox, WallThicknessLabel, TEXT("WallThicknessSlider"), TEXT("Wall Thickness"), 5.0f, 100.0f);
 	SeedSlider = AddLabeledSlider(MainBox, SeedLabel, TEXT("SeedSlider"), TEXT("Seed"), 0.0f, 9999.0f);
@@ -174,7 +175,8 @@ void UMazeEditorUtilityWidget::BindWidgetEvents()
 
 	if (WidthSlider)         WidthSlider->OnValueChanged.AddUniqueDynamic(this, &UMazeEditorUtilityWidget::HandleWidthChanged);
 	if (HeightSlider)        HeightSlider->OnValueChanged.AddUniqueDynamic(this, &UMazeEditorUtilityWidget::HandleHeightChanged);
-	if (CellSizeSlider)      CellSizeSlider->OnValueChanged.AddUniqueDynamic(this, &UMazeEditorUtilityWidget::HandleCellSizeChanged);
+	if (CellSizeXSlider)     CellSizeXSlider->OnValueChanged.AddUniqueDynamic(this, &UMazeEditorUtilityWidget::HandleCellSizeXChanged);
+	if (CellSizeYSlider)     CellSizeYSlider->OnValueChanged.AddUniqueDynamic(this, &UMazeEditorUtilityWidget::HandleCellSizeYChanged);
 	if (WallHeightSlider)    WallHeightSlider->OnValueChanged.AddUniqueDynamic(this, &UMazeEditorUtilityWidget::HandleWallHeightChanged);
 	if (WallThicknessSlider) WallThicknessSlider->OnValueChanged.AddUniqueDynamic(this, &UMazeEditorUtilityWidget::HandleWallThicknessChanged);
 	if (SeedSlider)          SeedSlider->OnValueChanged.AddUniqueDynamic(this, &UMazeEditorUtilityWidget::HandleSeedChanged);
@@ -313,15 +315,27 @@ void UMazeEditorUtilityWidget::HandleHeightChanged(float NewValue)
 	}
 }
 
-void UMazeEditorUtilityWidget::HandleCellSizeChanged(float NewValue)
+void UMazeEditorUtilityWidget::HandleCellSizeXChanged(float NewValue)
 {
 	if (TargetActor)
 	{
-		TargetActor->CellSize = NewValue;
+		TargetActor->CellSizeX = NewValue;
 	}
-	if (CellSizeLabel)
+	if (CellSizeXLabel)
 	{
-		CellSizeLabel->SetText(FText::FromString(FString::Printf(TEXT("Cell Size: %.0f"), NewValue)));
+		CellSizeXLabel->SetText(FText::FromString(FString::Printf(TEXT("Cell Size X: %.0f"), NewValue)));
+	}
+}
+
+void UMazeEditorUtilityWidget::HandleCellSizeYChanged(float NewValue)
+{
+	if (TargetActor)
+	{
+		TargetActor->CellSizeY = NewValue;
+	}
+	if (CellSizeYLabel)
+	{
+		CellSizeYLabel->SetText(FText::FromString(FString::Printf(TEXT("Cell Size Y: %.0f"), NewValue)));
 	}
 }
 
@@ -390,7 +404,8 @@ void UMazeEditorUtilityWidget::RefreshFromTargetActor()
 
 	if (WidthSlider)         WidthSlider->SetValue((float)TargetActor->MazeGenerator->MazeWidth);
 	if (HeightSlider)        HeightSlider->SetValue((float)TargetActor->MazeGenerator->MazeHeight);
-	if (CellSizeSlider)      CellSizeSlider->SetValue(TargetActor->CellSize);
+	if (CellSizeXSlider)     CellSizeXSlider->SetValue(TargetActor->CellSizeX);
+	if (CellSizeYSlider)     CellSizeYSlider->SetValue(TargetActor->CellSizeY);
 	if (WallHeightSlider)    WallHeightSlider->SetValue(TargetActor->WallHeight);
 	if (WallThicknessSlider) WallThicknessSlider->SetValue(TargetActor->WallThickness);
 	if (SeedSlider)          SeedSlider->SetValue((float)TargetActor->MazeGenerator->RandomSeed);
@@ -398,7 +413,8 @@ void UMazeEditorUtilityWidget::RefreshFromTargetActor()
 
 	if (WidthLabel)         WidthLabel->SetText(FText::FromString(FString::Printf(TEXT("Width: %d"), TargetActor->MazeGenerator->MazeWidth)));
 	if (HeightLabel)        HeightLabel->SetText(FText::FromString(FString::Printf(TEXT("Height: %d"), TargetActor->MazeGenerator->MazeHeight)));
-	if (CellSizeLabel)      CellSizeLabel->SetText(FText::FromString(FString::Printf(TEXT("Cell Size: %.0f"), TargetActor->CellSize)));
+	if (CellSizeXLabel)     CellSizeXLabel->SetText(FText::FromString(FString::Printf(TEXT("Cell Size X: %.0f"), TargetActor->CellSizeX)));
+	if (CellSizeYLabel)     CellSizeYLabel->SetText(FText::FromString(FString::Printf(TEXT("Cell Size Y: %.0f"), TargetActor->CellSizeY)));
 	if (WallHeightLabel)    WallHeightLabel->SetText(FText::FromString(FString::Printf(TEXT("Wall Height: %.0f"), TargetActor->WallHeight)));
 	if (WallThicknessLabel) WallThicknessLabel->SetText(FText::FromString(FString::Printf(TEXT("Wall Thickness: %.0f"), TargetActor->WallThickness)));
 	if (SeedLabel)          SeedLabel->SetText(FText::FromString(FString::Printf(TEXT("Seed: %d"), TargetActor->MazeGenerator->RandomSeed)));

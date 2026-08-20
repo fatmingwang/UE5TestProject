@@ -58,7 +58,10 @@ protected:
 	TObjectPtr<USlider> HeightSlider;
 
 	UPROPERTY(Transient)
-	TObjectPtr<USlider> CellSizeSlider;
+	TObjectPtr<USlider> CellSizeXSlider;
+
+	UPROPERTY(Transient)
+	TObjectPtr<USlider> CellSizeYSlider;
 
 	UPROPERTY(Transient)
 	TObjectPtr<USlider> WallHeightSlider;
@@ -79,7 +82,10 @@ protected:
 	TObjectPtr<UTextBlock> HeightLabel;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> CellSizeLabel;
+	TObjectPtr<UTextBlock> CellSizeXLabel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> CellSizeYLabel;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> WallHeightLabel;
@@ -112,7 +118,10 @@ protected:
 	void HandleHeightChanged(float NewValue);
 
 	UFUNCTION()
-	void HandleCellSizeChanged(float NewValue);
+	void HandleCellSizeXChanged(float NewValue);
+
+	UFUNCTION()
+	void HandleCellSizeYChanged(float NewValue);
 
 	UFUNCTION()
 	void HandleWallHeightChanged(float NewValue);

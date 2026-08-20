@@ -8,6 +8,7 @@
 #include "TimerManager.h"
 #include "MazeControlWidget.h"
 #include "MazeMinimapWidget.h"
+#include "StoreButtonWidget.h"
 #include "Blueprint/UserWidget.h"
 
 AMazeVisualizerActor::AMazeVisualizerActor()
@@ -63,6 +64,20 @@ void AMazeVisualizerActor::BeginPlay()
 		{
 			MinimapWidgetInstance->SetMazeActor(this);
 			MinimapWidgetInstance->AddToViewport();
+		}
+	}
+
+	if (bAutoCreateStoreButton)
+	{
+		TSubclassOf<UStoreButtonWidget> ClassToUse = StoreButtonWidgetClass;
+		if (!ClassToUse)
+		{
+			ClassToUse = UStoreButtonWidget::StaticClass();
+		}
+		StoreButtonWidgetInstance = CreateWidget<UStoreButtonWidget>(GetWorld(), ClassToUse);
+		if (StoreButtonWidgetInstance)
+		{
+			StoreButtonWidgetInstance->AddToViewport();
 		}
 	}
 }
@@ -194,7 +209,8 @@ void AMazeVisualizerActor::BuildFloorGrid()
 		return;
 	}
 
-	const float Scale = CellSize / MeshUnitSize;
+	const float ScaleX = CellSizeX / MeshUnitSize;
+	const float ScaleY = CellSizeY / MeshUnitSize;
 	const float ThicknessScale = FloorThickness / MeshUnitSize;
 
 	for (int32 Y = 0; Y < MazeGenerator->MazeHeight; ++Y)
@@ -202,8 +218,8 @@ void AMazeVisualizerActor::BuildFloorGrid()
 		for (int32 X = 0; X < MazeGenerator->MazeWidth; ++X)
 		{
 			FTransform InstanceTransform;
-			InstanceTransform.SetLocation(FVector(X * CellSize, Y * CellSize, -FloorThickness * 0.5f));
-			InstanceTransform.SetScale3D(FVector(Scale, Scale, ThicknessScale));
+			InstanceTransform.SetLocation(FVector(X * CellSizeX, Y * CellSizeY, -FloorThickness * 0.5f));
+			InstanceTransform.SetScale3D(FVector(ScaleX, ScaleY, ThicknessScale));
 			FloorInstances->AddInstance(InstanceTransform);
 		}
 	}
@@ -218,10 +234,14 @@ void AMazeVisualizerActor::RebuildWalls()
 		return;
 	}
 
-	const float LengthScale = CellSize / MeshUnitSize;
+	// North/South walls run along X (unrotated), so their length matches CellSizeX; West/East
+	// walls run along Y (rotated 90 degrees), so their length matches CellSizeY instead.
+	const float LengthScaleX = CellSizeX / MeshUnitSize;
+	const float LengthScaleY = CellSizeY / MeshUnitSize;
 	const float ThicknessScale = WallThickness / MeshUnitSize;
 	const float HeightScale = WallHeight / MeshUnitSize;
-	const float HalfCell = CellSize * 0.5f;
+	const float HalfCellX = CellSizeX * 0.5f;
+	const float HalfCellY = CellSizeY * 0.5f;
 	const float WallZ = WallHeight * 0.5f;
 	const FQuat RunAlongY(FRotator(0.0f, 90.0f, 0.0f));
 
@@ -234,40 +254,40 @@ void AMazeVisualizerActor::RebuildWalls()
 	{
 		for (int32 X = 0; X < Width; ++X)
 		{
-			const float CenterX = X * CellSize;
-			const float CenterY = Y * CellSize;
+			const float CenterX = X * CellSizeX;
+			const float CenterY = Y * CellSizeY;
 
 			if (MazeGenerator->HasWall(X, Y, EMazeWall::North))
 			{
 				FTransform T;
-				T.SetLocation(FVector(CenterX, CenterY - HalfCell, WallZ));
-				T.SetScale3D(FVector(LengthScale, ThicknessScale, HeightScale));
+				T.SetLocation(FVector(CenterX, CenterY - HalfCellY, WallZ));
+				T.SetScale3D(FVector(LengthScaleX, ThicknessScale, HeightScale));
 				WallInstances->AddInstance(T);
 			}
 
 			if (MazeGenerator->HasWall(X, Y, EMazeWall::West))
 			{
 				FTransform T;
-				T.SetLocation(FVector(CenterX - HalfCell, CenterY, WallZ));
+				T.SetLocation(FVector(CenterX - HalfCellX, CenterY, WallZ));
 				T.SetRotation(RunAlongY);
-				T.SetScale3D(FVector(LengthScale, ThicknessScale, HeightScale));
+				T.SetScale3D(FVector(LengthScaleY, ThicknessScale, HeightScale));
 				WallInstances->AddInstance(T);
 			}
 
 			if (Y == Height - 1 && MazeGenerator->HasWall(X, Y, EMazeWall::South))
 			{
 				FTransform T;
-				T.SetLocation(FVector(CenterX, CenterY + HalfCell, WallZ));
-				T.SetScale3D(FVector(LengthScale, ThicknessScale, HeightScale));
+				T.SetLocation(FVector(CenterX, CenterY + HalfCellY, WallZ));
+				T.SetScale3D(FVector(LengthScaleX, ThicknessScale, HeightScale));
 				WallInstances->AddInstance(T);
 			}
 
 			if (X == Width - 1 && MazeGenerator->HasWall(X, Y, EMazeWall::East))
 			{
 				FTransform T;
-				T.SetLocation(FVector(CenterX + HalfCell, CenterY, WallZ));
+				T.SetLocation(FVector(CenterX + HalfCellX, CenterY, WallZ));
 				T.SetRotation(RunAlongY);
-				T.SetScale3D(FVector(LengthScale, ThicknessScale, HeightScale));
+				T.SetScale3D(FVector(LengthScaleY, ThicknessScale, HeightScale));
 				WallInstances->AddInstance(T);
 			}
 		}
@@ -291,16 +311,24 @@ void AMazeVisualizerActor::UpdateMinimapFraming()
 	const int32 Width = FMath::Max(1, MazeGenerator->MazeWidth);
 	const int32 Height = FMath::Max(1, MazeGenerator->MazeHeight);
 
+	// MinimapCapture is pitched -90 with no yaw, so its local Right axis lines up with world Y and
+	// its local Up axis lines up with world X (see UMazeMinimapWidget::UpdatePlayerIcon). The render
+	// target's horizontal pixel axis therefore tracks world Y extent, and its vertical axis tracks
+	// world X extent - not the other way around. Aspect ratio must follow physical size, not cell
+	// counts, since cells aren't necessarily square.
+	const float CaptureRightExtent = Height * CellSizeY;
+	const float CaptureUpExtent = Width * CellSizeX;
+
 	const int32 LongEdge = FMath::Max(8, MinimapResolution);
 	int32 RTWidth = LongEdge;
 	int32 RTHeight = LongEdge;
-	if (Width >= Height)
+	if (CaptureRightExtent >= CaptureUpExtent)
 	{
-		RTHeight = FMath::Max(8, FMath::RoundToInt(LongEdge * (float)Height / (float)Width));
+		RTHeight = FMath::Max(8, FMath::RoundToInt(LongEdge * CaptureUpExtent / CaptureRightExtent));
 	}
 	else
 	{
-		RTWidth = FMath::Max(8, FMath::RoundToInt(LongEdge * (float)Width / (float)Height));
+		RTWidth = FMath::Max(8, FMath::RoundToInt(LongEdge * CaptureRightExtent / CaptureUpExtent));
 	}
 
 	if (!MinimapRenderTarget)
@@ -322,7 +350,7 @@ void AMazeVisualizerActor::UpdateMinimapFraming()
 	// Default framing: whole maze, centered on the maze itself. UpdateMinimapView() - normally
 	// driven by a UMazeMinimapWidget every tick - overrides this to pan/zoom around a tracked pawn;
 	// this is just the fallback used before that ever runs (e.g. the editor preview outside PIE).
-	const FVector MazeCenterLocal((Width - 1) * CellSize * 0.5f, (Height - 1) * CellSize * 0.5f, 0.0f);
+	const FVector MazeCenterLocal((Width - 1) * CellSizeX * 0.5f, (Height - 1) * CellSizeY * 0.5f, 0.0f);
 	const FVector MazeCenterWorld = MazeRoot->GetComponentTransform().TransformPosition(MazeCenterLocal);
 	UpdateMinimapView(MazeCenterWorld, 1.0f);
 }
@@ -339,13 +367,13 @@ void AMazeVisualizerActor::UpdateMinimapView(const FVector& FocusWorldLocation, 
 	const int32 Width = FMath::Max(1, MazeGenerator->MazeWidth);
 	const int32 Height = FMath::Max(1, MazeGenerator->MazeHeight);
 
-	const float FullWorldWidth = Width * CellSize;
-	const float FullWorldHeight = Height * CellSize;
+	const float FullWorldWidth = Width * CellSizeX;
+	const float FullWorldHeight = Height * CellSizeY;
 
 	const float ViewWorldWidth = FullWorldWidth * ClampedScale;
 	const float ViewWorldHeight = FullWorldHeight * ClampedScale;
 
-	const FVector MapCenterLocal((Width - 1) * CellSize * 0.5f, (Height - 1) * CellSize * 0.5f, 0.0f);
+	const FVector MapCenterLocal((Width - 1) * CellSizeX * 0.5f, (Height - 1) * CellSizeY * 0.5f, 0.0f);
 	const FVector FocusLocal = MazeRoot->GetComponentTransform().InverseTransformPosition(FocusWorldLocation);
 
 	// At Scale 1 we're centered on the maze (guarantees the whole grid is visible); as Scale shrinks
@@ -353,10 +381,10 @@ void AMazeVisualizerActor::UpdateMinimapView(const FVector& FocusWorldLocation, 
 	FVector CenterLocal = FMath::Lerp(MapCenterLocal, FVector(FocusLocal.X, FocusLocal.Y, 0.0f), 1.0f - ClampedScale);
 
 	// Keep the view window from hanging off the edge of the maze when the window is smaller than it.
-	const float MapMinX = -CellSize * 0.5f;
-	const float MapMaxX = FullWorldWidth - CellSize * 0.5f;
-	const float MapMinY = -CellSize * 0.5f;
-	const float MapMaxY = FullWorldHeight - CellSize * 0.5f;
+	const float MapMinX = -CellSizeX * 0.5f;
+	const float MapMaxX = FullWorldWidth - CellSizeX * 0.5f;
+	const float MapMinY = -CellSizeY * 0.5f;
+	const float MapMaxY = FullWorldHeight - CellSizeY * 0.5f;
 
 	if (ViewWorldWidth < FullWorldWidth)
 	{
@@ -369,7 +397,9 @@ void AMazeVisualizerActor::UpdateMinimapView(const FVector& FocusWorldLocation, 
 
 	CenterLocal.Z = MinimapCaptureHeight;
 
-	const float NewOrthoWidth = ViewWorldWidth > 0.0f ? ViewWorldWidth : FullWorldWidth;
+	// OrthoWidth is the capture's horizontal (Right) extent, which lines up with world Y - see the
+	// axis note in UpdateMinimapFraming().
+	const float NewOrthoWidth = ViewWorldHeight > 0.0f ? ViewWorldHeight : FullWorldHeight;
 	const bool bMoved = !MinimapCapture->GetRelativeLocation().Equals(CenterLocal, 0.5f)
 		|| !FMath::IsNearlyEqual(MinimapCapture->OrthoWidth, NewOrthoWidth, 0.5f);
 

@@ -2,12 +2,16 @@
 
 
 #include "My2DPlayerController.h"
+#include "StoreButtonWidget.h"
+#include "PlayerStatsComponent.h"
 
 AMy2DPlayerController::AMy2DPlayerController()
 {
 	bShowMouseCursor = true;  // Show mouse cursor for clicking
 	bEnableClickEvents = true;
 	bEnableMouseOverEvents = true;
+
+	PlayerStatsComponent = CreateDefaultSubobject<UPlayerStatsComponent>(TEXT("PlayerStatsComponent"));
 }
 
 void AMy2DPlayerController::BeginPlay()
@@ -33,4 +37,18 @@ void AMy2DPlayerController::BeginPlay()
 	//bShowMouseCursor = true;
 
 	UE_LOG(LogTemp, Warning, TEXT("AMy2DPlayerController::BeginPlay() called"));
+
+	if (bAutoCreateStoreButton)
+	{
+		TSubclassOf<UStoreButtonWidget> ClassToUse = StoreButtonWidgetClass;
+		if (!ClassToUse)
+		{
+			ClassToUse = UStoreButtonWidget::StaticClass();
+		}
+		StoreButtonWidgetInstance = CreateWidget<UStoreButtonWidget>(this, ClassToUse);
+		if (StoreButtonWidgetInstance)
+		{
+			StoreButtonWidgetInstance->AddToViewport();
+		}
+	}
 }

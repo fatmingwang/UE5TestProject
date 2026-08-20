@@ -61,3 +61,81 @@ void UMySaveGame::LoadGame(UObject* WorldContextObject)
 		UE_LOG(LogTemp, Log, TEXT("Game loaded successfully!"));
 	}
 }
+
+UMySaveGame* UMySaveGame::LoadOrCreateSaveGame()
+{
+	if (UMySaveGame* Loaded = Cast<UMySaveGame>(UGameplayStatics::LoadGameFromSlot(SaveSlotName, 0)))
+	{
+		return Loaded;
+	}
+	return Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
+}
+
+int32 UMySaveGame::GetGold(UObject* WorldContextObject)
+{
+	UMySaveGame* SaveGameInstance = LoadOrCreateSaveGame();
+	return SaveGameInstance ? SaveGameInstance->Gold : DefaultStartingGold;
+}
+
+bool UMySaveGame::TrySpendGold(UObject* WorldContextObject, int32 Amount)
+{
+	if (!WorldContextObject || Amount <= 0)
+	{
+		return false;
+	}
+
+	UMySaveGame* SaveGameInstance = LoadOrCreateSaveGame();
+	if (!SaveGameInstance || SaveGameInstance->Gold < Amount)
+	{
+		return false;
+	}
+
+	SaveGameInstance->Gold -= Amount;
+	return USaveGameRegistry::SaveGame(WorldContextObject, SaveGameInstance, SaveSlotName, 0);
+}
+
+void UMySaveGame::AddGold(UObject* WorldContextObject, int32 Amount)
+{
+	if (!WorldContextObject || Amount <= 0)
+	{
+		return;
+	}
+
+	UMySaveGame* SaveGameInstance = LoadOrCreateSaveGame();
+	if (!SaveGameInstance)
+	{
+		return;
+	}
+
+	SaveGameInstance->Gold += Amount;
+	USaveGameRegistry::SaveGame(WorldContextObject, SaveGameInstance, SaveSlotName, 0);
+}
+
+void UMySaveGame::GetPlayerStats(UObject* WorldContextObject, int32& OutHP, int32& OutEXP, int32& OutPower, int32& OutDef)
+{
+	UMySaveGame* SaveGameInstance = LoadOrCreateSaveGame();
+	OutHP = SaveGameInstance ? SaveGameInstance->PlayerHP : 0;
+	OutEXP = SaveGameInstance ? SaveGameInstance->PlayerEXP : 0;
+	OutPower = SaveGameInstance ? SaveGameInstance->PlayerPower : 0;
+	OutDef = SaveGameInstance ? SaveGameInstance->PlayerDef : 0;
+}
+
+void UMySaveGame::SavePlayerStats(UObject* WorldContextObject, int32 HP, int32 EXP, int32 Power, int32 Def)
+{
+	if (!WorldContextObject)
+	{
+		return;
+	}
+
+	UMySaveGame* SaveGameInstance = LoadOrCreateSaveGame();
+	if (!SaveGameInstance)
+	{
+		return;
+	}
+
+	SaveGameInstance->PlayerHP = HP;
+	SaveGameInstance->PlayerEXP = EXP;
+	SaveGameInstance->PlayerPower = Power;
+	SaveGameInstance->PlayerDef = Def;
+	USaveGameRegistry::SaveGame(WorldContextObject, SaveGameInstance, SaveSlotName, 0);
+}
