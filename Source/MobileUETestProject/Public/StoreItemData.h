@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/Texture2D.h"
 #include "StoreItemData.generated.h"
 
 // One purchasable entry in the store. Field names match the JSON keys loaded by
@@ -20,6 +21,11 @@ struct MOBILEUETESTPROJECT_API FStoreItemData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Store")
 	FString Description;
+
+	// Store-row thumbnail. JSON stores this as the texture's soft path string (e.g.
+	// "/Game/StoreData/Icons/T_Icon_Sword_Iron.T_Icon_Sword_Iron"); left unset, the row hides the icon slot.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Store")
+	TSoftObjectPtr<UTexture2D> Icon;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Store")
 	int32 Price = 0;

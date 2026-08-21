@@ -66,13 +66,6 @@ void UStoreButtonWidget::HandleStoreButtonClicked()
 		return;
 	}
 
-	if (StorePopupInstance->GetVisibility() == ESlateVisibility::Collapsed)
-	{
-		StorePopupInstance->RefreshStoreItems();
-		StorePopupInstance->SetVisibility(ESlateVisibility::Visible);
-	}
-	else
-	{
-		StorePopupInstance->SetVisibility(ESlateVisibility::Collapsed);
-	}
+	const bool bCurrentlyOpen = StorePopupInstance->GetVisibility() != ESlateVisibility::Collapsed;
+	StorePopupInstance->SetStoreOpen(!bCurrentlyOpen);
 }

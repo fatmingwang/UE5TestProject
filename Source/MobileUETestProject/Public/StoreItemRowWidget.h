@@ -9,11 +9,14 @@
 
 class UButton;
 class UTextBlock;
+class UImage;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStoreItemBuyClicked, const FString&, ItemID);
 
-// Self-building single row in the store popup: name/description/stats/price plus a Buy button.
-// UStoreWidget calls Setup() to populate the row and binds OnBuyClicked to react to purchases.
+// Single row in the store popup: name/description/stats/price plus a Buy button. Visual layout is
+// designed in a Widget Blueprint subclass (e.g. WBP_StoreItemRow) via the UMG Designer, naming its
+// widgets to match the BindWidget properties below. UStoreWidget calls Setup() to populate the row
+// and binds OnBuyClicked to react to purchases.
 UCLASS()
 class MOBILEUETESTPROJECT_API UStoreItemRowWidget : public UUserWidget
 {
@@ -27,21 +30,30 @@ public:
 	FOnStoreItemBuyClicked OnBuyClicked;
 
 protected:
-	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual void NativeConstruct() override;
 
-	UPROPERTY(Transient)
+	// Optional: not every row layout needs an icon. Name an Image "IconImage" in the Designer to use one.
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
+	TObjectPtr<UImage> IconImage;
+
+	// Name a TextBlock "NameText" in the Designer.
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UTextBlock> NameText;
 
-	UPROPERTY(Transient)
+	// Name a TextBlock "DescText" in the Designer.
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UTextBlock> DescText;
 
-	UPROPERTY(Transient)
+	// Name a TextBlock "StatsText" in the Designer.
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UTextBlock> StatsText;
 
-	UPROPERTY(Transient)
+	// Name a Button "BuyButton" in the Designer.
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UButton> BuyButton;
 
-	UPROPERTY(Transient)
+	// Name a TextBlock "BuyButtonText" in the Designer (typically placed as BuyButton's content).
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UTextBlock> BuyButtonText;
 
 	UFUNCTION()

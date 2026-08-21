@@ -1,0 +1,57 @@
+[
+    {
+        "ItemID": "potion_hp_small",
+        "ItemName": "Small Health Potion",
+        "Description": "Restores a small amount of health.",
+        "Icon": "/Game/StoreData/Icons/T_Icon_Potion_HP.T_Icon_Potion_HP",
+        "Price": 25,
+        "HP": 20,
+        "EXP": 0,
+        "Power": 0,
+        "Def": 0
+    },
+    {
+        "ItemID": "scroll_exp",
+        "ItemName": "Experience Scroll",
+        "Description": "Grants bonus experience when used.",
+        "Icon": "/Game/StoreData/Icons/T_Icon_Scroll_EXP.T_Icon_Scroll_EXP",
+        "Price": 40,
+        "HP": 0,
+        "EXP": 50,
+        "Power": 0,
+        "Def": 0
+    },
+    {
+        "ItemID": "sword_iron",
+        "ItemName": "Iron Sword",
+        "Description": "A sturdy blade that hits harder than your fists.",
+        "Icon": "/Game/StoreData/Icons/T_Icon_Sword_Iron.T_Icon_Sword_Iron",
+        "Price": 120,
+        "HP": 0,
+        "EXP": 0,
+        "Power": 15,
+        "Def": 0
+    },
+    {
+        "ItemID": "shield_wood",
+        "ItemName": "Wooden Shield",
+        "Description": "Simple shield that blocks a portion of incoming damage.",
+        "Icon": "/Game/StoreData/Icons/T_Icon_Shield_Wood.T_Icon_Shield_Wood",
+        "Price": 90,
+        "HP": 0,
+        "EXP": 0,
+        "Power": 0,
+        "Def": 10
+    },
+    {
+        "ItemID": "amulet_vitality",
+        "ItemName": "Amulet of Vitality",
+        "Description": "An enchanted amulet that boosts overall resilience.",
+        "Icon": "/Game/StoreData/Icons/T_Icon_Amulet_Vitality.T_Icon_Amulet_Vitality",
+        "Price": 200,
+        "HP": 30,
+        "EXP": 0,
+        "Power": 0,
+        "Def": 5
+    }
+]
