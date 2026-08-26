@@ -85,6 +85,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyMaze|Playback", meta = (DisplayName = "Auto Play On Begin Play"))
 	bool bAutoPlayOnBeginPlay = true;
 
+	// If set, BeginPlay() assigns the maze from a random *.json file in MazePoolDirectory (see
+	// GenerateAndExportMazes) instead of generating one live via Play(). Falls back to Play() if the
+	// directory is empty or unreadable.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyMaze|IO", meta = (DisplayName = "Assign Maze From Pool On Begin Play"))
+	bool bAssignMazeFromPoolOnBeginPlay = false;
+
+	// Directory of pre-generated maze JSON files (see GenerateAndExportMazes) to pick from when
+	// bAssignMazeFromPoolOnBeginPlay is set.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MyMaze|IO", meta = (DisplayName = "Maze Pool Directory"))
+	FString MazePoolDirectory;
+
 	// If set, an instance of this widget is created and added to the viewport on BeginPlay,
 	// pre-wired to this actor - drop this actor into a level, assign a WBP_ child of
 	// UMazeControlWidget here, and the control panel just works with no extra Blueprint wiring.
@@ -202,6 +213,27 @@ public:
 	// animated generation. Works identically at runtime and in-editor.
 	UFUNCTION(BlueprintCallable, Category = "MyMaze|IO")
 	bool ImportMazeFromFile(const FString& FilePath);
+
+	// Generates NumMazes distinct mazes at runtime (using the current MazeGenerator Width/Height) and
+	// exports each one as its own JSON file into OutputDirectory, named "{FileNamePrefix}_000.json",
+	// "{FileNamePrefix}_001.json", etc. If MazeGenerator->bUseFixedSeed is on, each maze still gets a
+	// distinct seed (RandomSeed + index) so the batch isn't N copies of the same maze; the original
+	// seed is restored afterward. Leaves the last generated maze on screen. Gated by
+	// MazeGenerator->bEnableFileIO. Returns how many files were exported successfully.
+	UFUNCTION(BlueprintCallable, Category = "MyMaze|IO")
+	int32 GenerateAndExportMazes(int32 NumMazes, const FString& OutputDirectory, const FString& FileNamePrefix = TEXT("Maze"));
+
+	// Loads a maze from FilePath and makes it the current maze, without running Wilson's algorithm -
+	// use this (or AssignRandomMazeFromDirectory) in place of Play()/GenerateInstantly() when the maze
+	// should come from a pre-generated pool (e.g. produced by GenerateAndExportMazes). Gated by
+	// MazeGenerator->bEnableFileIO.
+	UFUNCTION(BlueprintCallable, Category = "MyMaze|IO")
+	bool AssignMazeFromFile(const FString& FilePath);
+
+	// Picks one *.json file at random from Directory and assigns it via AssignMazeFromFile(). Returns
+	// false if the directory has no JSON files or the load fails.
+	UFUNCTION(BlueprintCallable, Category = "MyMaze|IO")
+	bool AssignRandomMazeFromDirectory(const FString& Directory);
 
 protected:
 	virtual void BeginPlay() override;

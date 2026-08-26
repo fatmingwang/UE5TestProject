@@ -6,6 +6,8 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "TimerManager.h"
+#include "Misc/Paths.h"
+#include "HAL/FileManager.h"
 #include "MazeControlWidget.h"
 #include "MazeMinimapWidget.h"
 #include "StoreButtonWidget.h"
@@ -44,7 +46,10 @@ void AMazeVisualizerActor::BeginPlay()
 	if (bAutoPlayOnBeginPlay)
 	{
 		PlayState = EMazePlayState::Stopped;
-		Play();
+		if (!bAssignMazeFromPoolOnBeginPlay || !AssignRandomMazeFromDirectory(MazePoolDirectory))
+		{
+			Play();
+		}
 	}
 
 	if (bAutoCreateControlWidget && ControlWidgetClass)
@@ -441,6 +446,67 @@ bool AMazeVisualizerActor::ImportMazeFromFile(const FString& FilePath)
 	SetPlayState(MazeGenerator->IsGenerationComplete() ? EMazePlayState::Completed : EMazePlayState::Stopped);
 
 	return true;
+}
+
+int32 AMazeVisualizerActor::GenerateAndExportMazes(int32 NumMazes, const FString& OutputDirectory, const FString& FileNamePrefix)
+{
+	if (!MazeGenerator || !MazeGenerator->bEnableFileIO || NumMazes <= 0)
+	{
+		return 0;
+	}
+
+	GetWorldTimerManager().ClearTimer(StepTimerHandle);
+
+	const bool bOriginalUseFixedSeed = MazeGenerator->bUseFixedSeed;
+	const int32 OriginalSeed = MazeGenerator->RandomSeed;
+
+	int32 NumExported = 0;
+	for (int32 Index = 0; Index < NumMazes; ++Index)
+	{
+		if (bOriginalUseFixedSeed)
+		{
+			// A fixed seed would otherwise regenerate the exact same maze every iteration.
+			MazeGenerator->RandomSeed = OriginalSeed + Index;
+		}
+
+		MazeGenerator->GenerateInstant();
+
+		const FString FilePath = FPaths::Combine(OutputDirectory, FString::Printf(TEXT("%s_%03d.json"), *FileNamePrefix, Index));
+		if (MazeGenerator->ExportToFile(FilePath))
+		{
+			++NumExported;
+		}
+	}
+
+	MazeGenerator->bUseFixedSeed = bOriginalUseFixedSeed;
+	MazeGenerator->RandomSeed = OriginalSeed;
+
+	// Reflect the last generated maze in the visualization, matching GenerateInstantly()'s end state.
+	BuildFloorGrid();
+	RebuildWalls();
+	SetPlayState(EMazePlayState::Completed);
+
+	return NumExported;
+}
+
+bool AMazeVisualizerActor::AssignMazeFromFile(const FString& FilePath)
+{
+	return ImportMazeFromFile(FilePath);
+}
+
+bool AMazeVisualizerActor::AssignRandomMazeFromDirectory(const FString& Directory)
+{
+	TArray<FString> JsonFileNames;
+	IFileManager::Get().FindFiles(JsonFileNames, *Directory, TEXT("*.json"));
+
+	if (JsonFileNames.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AMazeVisualizerActor::AssignRandomMazeFromDirectory: no .json files found in '%s'."), *Directory);
+		return false;
+	}
+
+	const FString ChosenFile = JsonFileNames[FMath::RandHelper(JsonFileNames.Num())];
+	return AssignMazeFromFile(FPaths::Combine(Directory, ChosenFile));
 }
 
 FVector2D AMazeVisualizerActor::WorldToMinimapUV(const FVector& WorldLocation) const
