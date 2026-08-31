@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 AToggleCameraCharacter::AToggleCameraCharacter()
 {
@@ -53,11 +54,13 @@ void AToggleCameraCharacter::ApplyCameraView()
 		CameraBoom->TargetArmLength = FirstPersonArmLength;
 		CameraBoom->SocketOffset = FirstPersonSocketOffset;
 		bUseControllerRotationYaw = true;
+		GetCharacterMovement()->bOrientRotationToMovement = false;
 	}
 	else
 	{
 		CameraBoom->TargetArmLength = ThirdPersonArmLength;
 		CameraBoom->SocketOffset = ThirdPersonSocketOffset;
 		bUseControllerRotationYaw = false;
+		GetCharacterMovement()->bOrientRotationToMovement = true;
 	}
 }
