@@ -256,4 +256,25 @@ private:
 	// (Re)creates/resizes MinimapRenderTarget to match the maze's current aspect ratio and resets
 	// MinimapCapture to the default full-maze framing. Called whenever the grid shape changes.
 	void UpdateMinimapFraming();
+
+	// OnConstruction re-runs on every Details-panel edit (not just ones that affect the maze), and
+	// on every Blueprint-editor preview refresh. Without this check, editing an unrelated property
+	// (e.g. StepInterval) would still pay for a full ISM rebuild + minimap re-capture. Compared
+	// against the inputs recorded by RecordBuildSignature() after the last rebuild.
+	bool NeedsEditorRebuild() const;
+	void RecordBuildSignature();
+
+	bool bHasBuiltOnce = false;
+	TWeakObjectPtr<UStaticMesh> LastBuiltFloorMesh;
+	TWeakObjectPtr<UStaticMesh> LastBuiltWallMesh;
+	float LastBuiltMeshUnitSize = 0.0f;
+	float LastBuiltCellSizeX = 0.0f;
+	float LastBuiltCellSizeY = 0.0f;
+	float LastBuiltWallHeight = 0.0f;
+	float LastBuiltWallThickness = 0.0f;
+	float LastBuiltFloorThickness = 0.0f;
+	int32 LastBuiltMazeWidth = 0;
+	int32 LastBuiltMazeHeight = 0;
+	bool LastBuiltUseFixedSeed = false;
+	int32 LastBuiltRandomSeed = 0;
 };

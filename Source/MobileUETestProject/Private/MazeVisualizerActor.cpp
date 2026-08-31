@@ -94,9 +94,56 @@ void AMazeVisualizerActor::OnConstruction(const FTransform& Transform)
 	FloorInstances->SetStaticMesh(FloorMesh);
 	WallInstances->SetStaticMesh(WallMesh);
 
+	if (!NeedsEditorRebuild())
+	{
+		return;
+	}
+
 	MazeGenerator->GenerateInstant();
 	BuildFloorGrid();
 	RebuildWalls();
+	RecordBuildSignature();
+}
+
+bool AMazeVisualizerActor::NeedsEditorRebuild() const
+{
+	if (!bHasBuiltOnce || !MazeGenerator)
+	{
+		return true;
+	}
+
+	return LastBuiltFloorMesh.Get() != FloorMesh
+		|| LastBuiltWallMesh.Get() != WallMesh
+		|| LastBuiltMeshUnitSize != MeshUnitSize
+		|| LastBuiltCellSizeX != CellSizeX
+		|| LastBuiltCellSizeY != CellSizeY
+		|| LastBuiltWallHeight != WallHeight
+		|| LastBuiltWallThickness != WallThickness
+		|| LastBuiltFloorThickness != FloorThickness
+		|| LastBuiltMazeWidth != MazeGenerator->MazeWidth
+		|| LastBuiltMazeHeight != MazeGenerator->MazeHeight
+		|| LastBuiltUseFixedSeed != MazeGenerator->bUseFixedSeed
+		|| LastBuiltRandomSeed != MazeGenerator->RandomSeed;
+}
+
+void AMazeVisualizerActor::RecordBuildSignature()
+{
+	bHasBuiltOnce = true;
+	LastBuiltFloorMesh = FloorMesh;
+	LastBuiltWallMesh = WallMesh;
+	LastBuiltMeshUnitSize = MeshUnitSize;
+	LastBuiltCellSizeX = CellSizeX;
+	LastBuiltCellSizeY = CellSizeY;
+	LastBuiltWallHeight = WallHeight;
+	LastBuiltWallThickness = WallThickness;
+	LastBuiltFloorThickness = FloorThickness;
+	if (MazeGenerator)
+	{
+		LastBuiltMazeWidth = MazeGenerator->MazeWidth;
+		LastBuiltMazeHeight = MazeGenerator->MazeHeight;
+		LastBuiltUseFixedSeed = MazeGenerator->bUseFixedSeed;
+		LastBuiltRandomSeed = MazeGenerator->RandomSeed;
+	}
 }
 
 void AMazeVisualizerActor::Play()
@@ -218,16 +265,23 @@ void AMazeVisualizerActor::BuildFloorGrid()
 	const float ScaleY = CellSizeY / MeshUnitSize;
 	const float ThicknessScale = FloorThickness / MeshUnitSize;
 
+	TArray<FTransform> InstanceTransforms;
+	InstanceTransforms.Reserve(MazeGenerator->MazeWidth * MazeGenerator->MazeHeight);
+
 	for (int32 Y = 0; Y < MazeGenerator->MazeHeight; ++Y)
 	{
 		for (int32 X = 0; X < MazeGenerator->MazeWidth; ++X)
 		{
-			FTransform InstanceTransform;
+			FTransform& InstanceTransform = InstanceTransforms.AddDefaulted_GetRef();
 			InstanceTransform.SetLocation(FVector(X * CellSizeX, Y * CellSizeY, -FloorThickness * 0.5f));
 			InstanceTransform.SetScale3D(FVector(ScaleX, ScaleY, ThicknessScale));
-			FloorInstances->AddInstance(InstanceTransform);
 		}
 	}
+
+	// One bulk call instead of one AddInstance() per cell - each individual call pays for its own
+	// bounds/render-state update, which adds up fast for large grids and is a major source of the
+	// stall this rebuild otherwise causes in the editor.
+	FloorInstances->AddInstances(InstanceTransforms, /*bShouldReturnIndices=*/false);
 }
 
 void AMazeVisualizerActor::RebuildWalls()
@@ -253,6 +307,9 @@ void AMazeVisualizerActor::RebuildWalls()
 	const int32 Width = MazeGenerator->MazeWidth;
 	const int32 Height = MazeGenerator->MazeHeight;
 
+	TArray<FTransform> InstanceTransforms;
+	InstanceTransforms.Reserve(Width * Height * 2);
+
 	// Each interior wall is only owned by one side (North/West) so it's added exactly once;
 	// the outer South/East boundary is only carved when its owning cell is on the last row/column.
 	for (int32 Y = 0; Y < Height; ++Y)
@@ -264,43 +321,45 @@ void AMazeVisualizerActor::RebuildWalls()
 
 			if (MazeGenerator->HasWall(X, Y, EMazeWall::North))
 			{
-				FTransform T;
+				FTransform& T = InstanceTransforms.AddDefaulted_GetRef();
 				T.SetLocation(FVector(CenterX, CenterY - HalfCellY, WallZ));
 				T.SetScale3D(FVector(LengthScaleX, ThicknessScale, HeightScale));
-				WallInstances->AddInstance(T);
 			}
 
 			if (MazeGenerator->HasWall(X, Y, EMazeWall::West))
 			{
-				FTransform T;
+				FTransform& T = InstanceTransforms.AddDefaulted_GetRef();
 				T.SetLocation(FVector(CenterX - HalfCellX, CenterY, WallZ));
 				T.SetRotation(RunAlongY);
 				T.SetScale3D(FVector(LengthScaleY, ThicknessScale, HeightScale));
-				WallInstances->AddInstance(T);
 			}
 
 			if (Y == Height - 1 && MazeGenerator->HasWall(X, Y, EMazeWall::South))
 			{
-				FTransform T;
+				FTransform& T = InstanceTransforms.AddDefaulted_GetRef();
 				T.SetLocation(FVector(CenterX, CenterY + HalfCellY, WallZ));
 				T.SetScale3D(FVector(LengthScaleX, ThicknessScale, HeightScale));
-				WallInstances->AddInstance(T);
 			}
 
 			if (X == Width - 1 && MazeGenerator->HasWall(X, Y, EMazeWall::East))
 			{
-				FTransform T;
+				FTransform& T = InstanceTransforms.AddDefaulted_GetRef();
 				T.SetLocation(FVector(CenterX + HalfCellX, CenterY, WallZ));
 				T.SetRotation(RunAlongY);
 				T.SetScale3D(FVector(LengthScaleY, ThicknessScale, HeightScale));
-				WallInstances->AddInstance(T);
 			}
 		}
 	}
 
+	// One bulk call instead of one AddInstance() per wall segment - see BuildFloorGrid() for why.
+	WallInstances->AddInstances(InstanceTransforms, /*bShouldReturnIndices=*/false);
+
 	// Walls changed shape, so the minimap's rendered image is stale regardless of whether its
-	// camera moved this frame.
-	if (MinimapCapture && MinimapRenderTarget)
+	// camera moved this frame. Skip this outside a running game (e.g. editor OnConstruction/preview
+	// rebuilds) since nothing is displaying MinimapRenderTarget there - it's just an extra forced
+	// scene render on every edit.
+	const UWorld* World = GetWorld();
+	if (MinimapCapture && MinimapRenderTarget && World && World->IsGameWorld())
 	{
 		MinimapCapture->CaptureScene();
 	}
@@ -336,6 +395,9 @@ void AMazeVisualizerActor::UpdateMinimapFraming()
 		RTWidth = FMath::Max(8, FMath::RoundToInt(LongEdge * CaptureRightExtent / CaptureUpExtent));
 	}
 
+	// UpdateResourceImmediate(true) forces a synchronous render-thread flush - a major stall source
+	// when this runs from OnConstruction (every Details-panel edit / Blueprint-editor preview
+	// refresh). false still queues the resize, just without blocking the game thread on it.
 	if (!MinimapRenderTarget)
 	{
 		MinimapRenderTarget = NewObject<UTextureRenderTarget2D>(this, TEXT("MinimapRenderTarget"));
@@ -343,13 +405,13 @@ void AMazeVisualizerActor::UpdateMinimapFraming()
 		MinimapRenderTarget->ClearColor = FLinearColor::Black;
 		MinimapRenderTarget->bAutoGenerateMips = false;
 		MinimapRenderTarget->InitAutoFormat(RTWidth, RTHeight);
-		MinimapRenderTarget->UpdateResourceImmediate(true);
+		MinimapRenderTarget->UpdateResourceImmediate(false);
 		MinimapCapture->TextureTarget = MinimapRenderTarget;
 	}
 	else if (MinimapRenderTarget->SizeX != RTWidth || MinimapRenderTarget->SizeY != RTHeight)
 	{
 		MinimapRenderTarget->InitAutoFormat(RTWidth, RTHeight);
-		MinimapRenderTarget->UpdateResourceImmediate(true);
+		MinimapRenderTarget->UpdateResourceImmediate(false);
 	}
 
 	// Default framing: whole maze, centered on the maze itself. UpdateMinimapView() - normally
@@ -411,7 +473,10 @@ void AMazeVisualizerActor::UpdateMinimapView(const FVector& FocusWorldLocation, 
 	MinimapCapture->SetRelativeLocation(CenterLocal);
 	MinimapCapture->OrthoWidth = NewOrthoWidth;
 
-	if (bMoved)
+	// See the equivalent check in RebuildWalls(): skip the forced scene render outside a running
+	// game, since nothing is displaying MinimapRenderTarget there.
+	const UWorld* World = GetWorld();
+	if (bMoved && World && World->IsGameWorld())
 	{
 		MinimapCapture->CaptureScene();
 	}
