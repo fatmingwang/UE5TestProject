@@ -20,13 +20,30 @@ AMazeVisualizerActor::AMazeVisualizerActor()
 	MazeRoot = CreateDefaultSubobject<USceneComponent>(TEXT("MazeRoot"));
 	SetRootComponent(MazeRoot);
 
+	// Movable, not Static: BuildFloorGrid()/RebuildWalls() call ClearInstances()/AddInstances() on
+	// these repeatedly, both in the editor (OnConstruction, on every relevant property edit) and at
+	// runtime (Play/GenerateInstantly/TickStep/Restart/Stop/Import). Static-mobility primitives use
+	// cached mesh draw commands that get invalidated and fully rebuilt on any state change, including
+	// the component's *selected* state in the editor - with ClearInstances()/AddInstances() churn on
+	// top of that, simply re-selecting this actor in the World Outliner was enough to force an
+	// expensive rebuild and stall the editor UI for a few seconds. Movable components skip that
+	// cached-draw-command path entirely, which is also the semantically correct choice for content
+	// that keeps changing shape after being placed.
 	FloorInstances = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("FloorInstances"));
 	FloorInstances->SetupAttachment(MazeRoot);
-	FloorInstances->SetMobility(EComponentMobility::Static);
+	FloorInstances->SetMobility(EComponentMobility::Movable);
+	// Nothing in this project pathfinds through the maze (the player is a Character, not a
+	// nav-driven AI), but bCanEverAffectNavigation defaults to true - so every ClearInstances()/
+	// AddInstances() call (OnConstruction on every level load/property edit, plus every Play/
+	// GenerateInstantly/Restart/Import at runtime) was queuing a full navmesh rebuild over the whole
+	// grid. That's what turned a level reopen into a multi-second editor freeze. Off, since there's
+	// no navmesh consumer to keep in sync.
+	FloorInstances->SetCanEverAffectNavigation(false);
 
 	WallInstances = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("WallInstances"));
 	WallInstances->SetupAttachment(MazeRoot);
-	WallInstances->SetMobility(EComponentMobility::Static);
+	WallInstances->SetMobility(EComponentMobility::Movable);
+	WallInstances->SetCanEverAffectNavigation(false);
 
 	MazeGenerator = CreateDefaultSubobject<UWilsonMazeGenerator>(TEXT("MazeGenerator"));
 
@@ -99,9 +116,21 @@ void AMazeVisualizerActor::OnConstruction(const FTransform& Transform)
 		return;
 	}
 
-	MazeGenerator->GenerateInstant();
-	BuildFloorGrid();
-	RebuildWalls();
+	// Running the full generation algorithm here made every OnConstruction call - which fires on
+	// every level load, every relevant property edit, and (for a Blueprint-placed actor whose class
+	// was just hot-reloaded) sometimes on mere (re)selection - pay for a synchronous maze generation
+	// on the game thread, which is what was freezing the editor UI. The preview only needs *something*
+	// to look at: try the pre-generated pool first (as cheap as reading one small JSON file), and
+	// otherwise fall back to an all-walls-up grid (O(cell count), no random walk) instead of actually
+	// generating one. Play()/GenerateInstantly() (the button, or BeginPlay via bAutoPlayOnBeginPlay)
+	// still run full generation when it's actually wanted.
+	if (!bAssignMazeFromPoolOnBeginPlay || !AssignRandomMazeFromDirectory(MazePoolDirectory))
+	{
+		MazeGenerator->ResetMaze();
+		BuildFloorGrid();
+		RebuildWalls();
+	}
+
 	RecordBuildSignature();
 }
 
