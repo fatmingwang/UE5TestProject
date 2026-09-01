@@ -4,9 +4,13 @@
 #include "BoxerCharacter.h"
 #include "BoxingCameraRig.h"
 #include "BoxingHUDWidget.h"
+#include "BoxingDataSubsystem.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
+#include "GameFramework/Pawn.h"
+#include "Camera/PlayerCameraManager.h"
+#include "Components/InputComponent.h"
 #include "TimerManager.h"
 
 AFightDirector::AFightDirector()
@@ -24,9 +28,53 @@ void AFightDirector::BeginPlay()
 		PlayerBoxer->OnGuardReleased.AddDynamic(this, &AFightDirector::HandlePlayerGuardReleased);
 	}
 
+	if (bBindTestHotkey)
+	{
+		if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+		{
+			EnableInput(PC);
+		}
+
+		if (InputComponent)
+		{
+			InputComponent->BindKey(TestHotkey, IE_Pressed, this, &AFightDirector::ToggleFightForTesting);
+		}
+	}
+
+	if (bAutoStartOnBeginPlay)
+	{
+		StartFight();
+	}
+}
+
+void AFightDirector::StartFight()
+{
+	if (bFightStarted || !PlayerBoxer || !OpponentBoxer)
+	{
+		return;
+	}
+	bFightStarted = true;
+
+	ApplyLoadouts();
+
+	if (CameraRig)
+	{
+		CameraRig->PlayBellShot(PlayerBoxer, OpponentBoxer);
+	}
+
 	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
 	{
-		if (HUDWidgetClass)
+		PreviousPawn = PC->GetPawn();
+		PreviousViewTarget = PC->GetViewTarget();
+
+		PC->Possess(PlayerBoxer);
+
+		if (CameraRig)
+		{
+			PC->SetViewTargetWithBlend(CameraRig, 0.5f, VTBlend_Cubic);
+		}
+
+		if (!HUDWidgetInstance && HUDWidgetClass)
 		{
 			HUDWidgetInstance = CreateWidget<UBoxingHUDWidget>(PC, HUDWidgetClass);
 			if (HUDWidgetInstance)
@@ -35,6 +83,10 @@ void AFightDirector::BeginPlay()
 				HUDWidgetInstance->AddToViewport();
 			}
 		}
+		else if (HUDWidgetInstance)
+		{
+			HUDWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+		}
 
 		FInputModeGameAndUI InputMode;
 		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
@@ -42,13 +94,90 @@ void AFightDirector::BeginPlay()
 		PC->SetShowMouseCursor(true);
 	}
 
-	if (CameraRig)
-	{
-		CameraRig->PlayBellShot(PlayerBoxer, OpponentBoxer);
-	}
-
 	SetState(EFightState::Bell);
 	GetWorldTimerManager().SetTimer(BellTimerHandle, this, &AFightDirector::StartPlayerAttackPhase, BellDuration, false);
+}
+
+void AFightDirector::ResetFight()
+{
+	bFightStarted = false;
+	GetWorldTimerManager().ClearTimer(BellTimerHandle);
+	CurrentState = EFightState::Bell;
+
+	if (HUDWidgetInstance)
+	{
+		HUDWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+	{
+		PC->SetInputMode(FInputModeGameOnly());
+		PC->SetShowMouseCursor(false);
+
+		if (APawn* PawnToRestore = PreviousPawn.Get())
+		{
+			PC->Possess(PawnToRestore);
+		}
+
+		if (AActor* ViewTargetToRestore = PreviousViewTarget.Get())
+		{
+			PC->SetViewTargetWithBlend(ViewTargetToRestore, 0.5f, VTBlend_Cubic);
+		}
+	}
+
+	PreviousPawn = nullptr;
+	PreviousViewTarget = nullptr;
+}
+
+void AFightDirector::ToggleFightForTesting()
+{
+	if (bFightStarted)
+	{
+		ResetFight();
+	}
+	else
+	{
+		StartFight();
+	}
+}
+
+void AFightDirector::ApplyLoadouts()
+{
+	const UBoxingDataSubsystem* DataSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UBoxingDataSubsystem>() : nullptr;
+	if (!DataSubsystem)
+	{
+		return;
+	}
+
+	if (PlayerBoxer)
+	{
+		if (const FBoxerGloveData* Glove = DataSubsystem->FindGlove(PlayerGloveID))
+		{
+			PlayerBoxer->ApplyGloveData(*Glove);
+		}
+
+		if (const FBoxerStanceData* Stance = DataSubsystem->FindStance(PlayerStanceID))
+		{
+			PlayerBoxer->ApplyStanceData(*Stance);
+		}
+
+		if (!PlayerPerkID.IsEmpty())
+		{
+			if (const FBoxerPerkData* Perk = DataSubsystem->FindPerk(PlayerPerkID))
+			{
+				PlayerBoxer->ApplyPerkData(*Perk);
+			}
+		}
+	}
+
+	if (OpponentBoxer)
+	{
+		if (const FOpponentData* Opponent = DataSubsystem->FindOpponent(OpponentID))
+		{
+			OpponentBoxer->ApplyOpponentData(*Opponent);
+			OpponentSkill = Opponent->OpponentSkill;
+		}
+	}
 }
 
 void AFightDirector::SetState(EFightState NewState)

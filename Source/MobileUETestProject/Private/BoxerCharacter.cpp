@@ -219,6 +219,51 @@ void ABoxerCharacter::ExitGuardPose()
 	GuardMontage = nullptr;
 }
 
+void ABoxerCharacter::ApplyGloveData(const FBoxerGloveData& Glove)
+{
+	ATK += Glove.ATKBonus;
+	AttackV0 = Glove.AttackV0;
+	AttackVmax = Glove.AttackVmax;
+	AttackRampTime = Glove.AttackRampTime;
+	AttackMaxMult = Glove.AttackMaxMult;
+	AttackZones = Glove.AttackZones;
+}
+
+void ABoxerCharacter::ApplyStanceData(const FBoxerStanceData& Stance)
+{
+	DEF += Stance.DEFBonus;
+	DefenseV0 = Stance.DefenseV0;
+	DefenseVmax = Stance.DefenseVmax;
+	DefenseRampTime = Stance.DefenseRampTime;
+	DefenseZones = Stance.DefenseZones;
+}
+
+void ABoxerCharacter::ApplyOpponentData(const FOpponentData& Opponent)
+{
+	MaxHP = Opponent.MaxHP;
+	CurrentHP = Opponent.MaxHP;
+	ATK = Opponent.ATK;
+	DEF = Opponent.DEF;
+
+	AttackV0 = Opponent.AttackV0;
+	AttackVmax = Opponent.AttackVmax;
+	AttackRampTime = Opponent.AttackRampTime;
+	AttackMaxMult = Opponent.AttackMaxMult;
+	AttackZones = Opponent.AttackZones;
+
+	DefenseV0 = Opponent.DefenseV0;
+	DefenseVmax = Opponent.DefenseVmax;
+	DefenseRampTime = Opponent.DefenseRampTime;
+	DefenseZones = Opponent.DefenseZones;
+}
+
+void ABoxerCharacter::ApplyPerkData(const FBoxerPerkData& Perk)
+{
+	ActivePerk = Perk;
+	AttackRampTime *= Perk.RampTimeMultiplier;
+	DefenseRampTime *= Perk.RampTimeMultiplier;
+}
+
 UAnimMontage* ABoxerCharacter::PlayDynamicMontage(UAnimSequence* Sequence, float BlendInTime, float BlendOutTime)
 {
 	if (!Sequence)

@@ -1,0 +1,32 @@
+[
+    {
+        "StanceID": "stance_neutral",
+        "StanceName": "Neutral Stance",
+        "Description": "Balanced all-rounder stance, no strengths or weaknesses.",
+        "DEFBonus": 0,
+        "DefenseV0": 18,
+        "DefenseVmax": 220,
+        "DefenseRampTime": 1.4,
+        "DefenseZones": { "GreenHalf": 15, "BlueOuter": 35, "RedOuter": 60 }
+    },
+    {
+        "StanceID": "stance_guard_up",
+        "StanceName": "Guard Up",
+        "Description": "Steady and defensive - the bar moves slowly and the zones are wide, easy to time.",
+        "DEFBonus": 6,
+        "DefenseV0": 12,
+        "DefenseVmax": 170,
+        "DefenseRampTime": 1.8,
+        "DefenseZones": { "GreenHalf": 22, "BlueOuter": 48, "RedOuter": 80 }
+    },
+    {
+        "StanceID": "stance_bob_and_weave",
+        "StanceName": "Bob & Weave",
+        "Description": "Risky and reactive - the bar whips by quickly across a tight bar, high reward if timed.",
+        "DEFBonus": -2,
+        "DefenseV0": 28,
+        "DefenseVmax": 280,
+        "DefenseRampTime": 1.0,
+        "DefenseZones": { "GreenHalf": 9, "BlueOuter": 22, "RedOuter": 40 }
+    }
+]

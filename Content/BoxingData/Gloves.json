@@ -1,0 +1,35 @@
+[
+    {
+        "GloveID": "gloves_training",
+        "GloveName": "Training Gloves",
+        "Description": "Balanced all-rounder gloves, no strengths or weaknesses.",
+        "ATKBonus": 0,
+        "AttackV0": 15,
+        "AttackVmax": 200,
+        "AttackRampTime": 1.8,
+        "AttackMaxMult": 2.0,
+        "AttackZones": { "GreenHalf": 15, "BlueOuter": 35, "RedOuter": 60 }
+    },
+    {
+        "GloveID": "gloves_quick_wraps",
+        "GloveName": "Quick Wraps",
+        "Description": "Light and fast - the bar whips by quickly, and the zones are tight.",
+        "ATKBonus": 2,
+        "AttackV0": 25,
+        "AttackVmax": 260,
+        "AttackRampTime": 1.3,
+        "AttackMaxMult": 1.7,
+        "AttackZones": { "GreenHalf": 10, "BlueOuter": 25, "RedOuter": 45 }
+    },
+    {
+        "GloveID": "gloves_power",
+        "GloveName": "Power Gloves",
+        "Description": "Heavy hitters - the bar moves slowly and the zones are generous, but a clean hit does big damage.",
+        "ATKBonus": 8,
+        "AttackV0": 10,
+        "AttackVmax": 150,
+        "AttackRampTime": 2.4,
+        "AttackMaxMult": 2.6,
+        "AttackZones": { "GreenHalf": 20, "BlueOuter": 45, "RedOuter": 75 }
+    }
+]

@@ -1,0 +1,29 @@
+[
+    {
+        "PerkID": "perk_iron_chin",
+        "PerkName": "Iron Chin",
+        "Description": "Flat +10% damage mitigation floor, even on a bad guard.",
+        "MitigationFloorBonus": 0.10,
+        "AttackPowerBonusPct": 0.0,
+        "bZeroDamageOnRedGuard": false,
+        "RampTimeMultiplier": 1.0
+    },
+    {
+        "PerkID": "perk_counter_puncher",
+        "PerkName": "Counter Puncher",
+        "Description": "+15% attack power, and a RED-zone guard takes 0 damage instead of the usual heavy hit.",
+        "MitigationFloorBonus": 0.0,
+        "AttackPowerBonusPct": 0.15,
+        "bZeroDamageOnRedGuard": true,
+        "RampTimeMultiplier": 1.0
+    },
+    {
+        "PerkID": "perk_focus",
+        "PerkName": "Focus",
+        "Description": "Both bars ramp up 25% slower, giving more time to read the marker.",
+        "MitigationFloorBonus": 0.0,
+        "AttackPowerBonusPct": 0.0,
+        "bZeroDamageOnRedGuard": false,
+        "RampTimeMultiplier": 1.25
+    }
+]

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "PowerBarMath.h"
+#include "BoxingLoadoutData.h"
 #include "BoxerCharacter.generated.h"
 
 class UAnimSequence;
@@ -174,7 +175,36 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Boxer")
 	bool IsCharging() const { return CurrentState == EBoxerState::ChargingAttack || CurrentState == EBoxerState::ChargingGuard; }
 
+	// Loadout appliers (design doc section 6) - read a catalog entry off UBoxingDataSubsystem and
+	// configure this boxer with it. Call once during fight setup (e.g. from BP_FightDirector or
+	// AFightDirector::BeginPlay), not repeatedly - ATKBonus/DEFBonus are added on top of the
+	// current ATK/DEF each call, everything else (bar tuning/zones) is overwritten outright since a
+	// boxer only ever wears one glove/stance at a time.
+	UFUNCTION(BlueprintCallable, Category = "Boxer|Loadout")
+	void ApplyGloveData(const FBoxerGloveData& Glove);
+
+	UFUNCTION(BlueprintCallable, Category = "Boxer|Loadout")
+	void ApplyStanceData(const FBoxerStanceData& Stance);
+
+	// Sets MaxHP/CurrentHP/ATK/DEF and both bars' tuning wholesale - meant for configuring an
+	// opponent-side boxer from a chosen UBoxingDataSubsystem opponent entry, not the player boxer
+	// (which is built from Gloves/Stance/Perk instead).
+	UFUNCTION(BlueprintCallable, Category = "Boxer|Loadout")
+	void ApplyOpponentData(const FOpponentData& Opponent);
+
+	// Stores Perk and applies its RampTimeMultiplier to both bars. MitigationFloorBonus/
+	// AttackPowerBonusPct/bZeroDamageOnRedGuard are not applied here - GetActivePerk() exposes them
+	// for whoever resolves damage (AFightDirector) to read at release time.
+	UFUNCTION(BlueprintCallable, Category = "Boxer|Loadout")
+	void ApplyPerkData(const FBoxerPerkData& Perk);
+
+	UFUNCTION(BlueprintPure, Category = "Boxer|Loadout")
+	const FBoxerPerkData& GetActivePerk() const { return ActivePerk; }
+
 private:
+	UPROPERTY(Transient)
+	FBoxerPerkData ActivePerk;
+
 	float BarPosition = 0.0f;
 	float BarDirection = 1.0f;
 	float BarElapsedTime = 0.0f;
