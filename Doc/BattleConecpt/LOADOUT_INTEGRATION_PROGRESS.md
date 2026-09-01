@@ -136,6 +136,41 @@ let `AFightDirector` assemble a fight (player loadout + AI opponent) by ID looku
       inert for movement — this is purely for camera/control correctness during the
       fight, not to let the player walk around as the boxer.
 
+### Playtest bugs to fix next (reported 2026-09-01, not yet investigated/fixed)
+
+1. **Punch animation drags the player out of position.** After throwing a punch, the
+   player boxer ends up physically further from the opponent than where it started —
+   over repeated punches this walks the player away entirely. Likely cause: the
+   placeholder Mannequin mocap clips (`MM_Attack_01/02/03`, `MM_ChargedAttack` — see
+   item 5 above) have root motion baked in and enabled, and
+   `ABoxerCharacter::PlayDynamicMontage()`/`PlayPunchMontage()`
+   (`BoxerCharacter.cpp` — plays them via `PlaySlotAnimationAsDynamicMontage`) doesn't
+   currently suppress it, so `CharacterMovementComponent` applies the clip's forward
+   translation to the capsule. Fix options to weigh: (a) disable "Enable Root Motion" on
+   the specific anim assets, (b) force root motion translation off for these dynamic
+   montages at playback time, or (c) simplest/most robust regardless of which anim
+   assets end up used — cache the actor's location when a punch/guard montage starts and
+   snap back to it on montage end (or every tick while `Punching`/`Guarding`/
+   `HitReacting`), so the boxer is pinned in place no matter what root motion a clip
+   carries.
+2. **Fight doesn't feel turn-based — the opponent just idles.** Currently only the
+   player's boxer ever animates/reacts: `AFightDirector::StartPlayerAttackPhase()`
+   starts the player's turn but `OpponentBoxer` has no visual response while the player
+   charges/releases a punch, and `StartPlayerDefendPhase()`/`ResolveOpponentPunch()`
+   compute the incoming punch's numbers but never make `OpponentBoxer` actually play a
+   punch animation for it — the player is asked to guard against an attack they never
+   see thrown. Need:
+   - While `CurrentState == PlayerAttack` (player charging/releasing their punch),
+     `OpponentBoxer` should visibly guard — it already has `EnterGuardPose()`/
+     `ExitGuardPose()` (currently private, used only for the *local* boxer's own
+     `StartChargingGuard()`/`ReleaseGuard()`); needs either a public wrapper or a new
+     `AFightDirector`-callable hook so the opponent can be put into/out of a guard pose
+     on the player's turn.
+   - While `CurrentState == PlayerDefend` (opponent's turn), `OpponentBoxer` should play
+     its own punch montage matching what `ResolveOpponentPunch()` computed, timed with
+     the defend phase (e.g. triggered from `StartPlayerDefendPhase()`) rather than the
+     punch being purely a background number crunch the player never sees.
+
 ### Known gaps / risks
 
 - `ApplyOpponentData()` resets `CurrentHP = MaxHP` unconditionally — fine for
